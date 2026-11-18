@@ -25,8 +25,11 @@ export interface Palette {
 	tree?: Colorize;
 	/** Rounded Nerd Font end caps; false draws square chips with a space on each side. */
 	roundCaps?: boolean;
-	/** Pills as inline code spans, for a view that draws the Markdown itself and would show color codes as text. */
-	chips?: boolean;
+	/**
+	 * For a view that draws the Markdown itself in a proportional font and would show color codes as text:
+	 * pills become inline code spans and tree rows become nested list items.
+	 */
+	native?: boolean;
 }
 
 /** Minimal slice of omp's Theme used to build a palette. */
@@ -167,6 +170,8 @@ export function createPalette(theme: ThemeLike, boldColor = "mdLink"): Palette {
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 // Escaped bold markers, bold markers, or a [[pill]] of 1-32 characters.
 const INLINE = /(\\*)(\*\*|__)|\[\[([^\[\]\n]{1,32})\]\]/g;
+// A tree row's indent (spaces and vertical connectors) and its branch connector.
+const TREE_ROW = /^([ \t│]*)[├└]─+ ?/;
 
 /** Apply colors to assistant Markdown, leaving code blocks, inline code and headings alone. */
 export function decorate(markdown: string, palette: Palette): string {
@@ -184,7 +189,9 @@ export function decorate(markdown: string, palette: Palette): string {
 		} else if (/^ {0,3}#{1,6}\s/.test(line)) {
 			out.push(line.replace(/^( {0,3}#{1,6}\s+)(.+)$/, (_, hashes: string, title: string) => hashes + withLabelIcon(title))); // omp already colors headings.
 		} else {
-			out.push(decorateLine(line, palette, open, close));
+			// Box-drawing connectors only line up in a monospace font, so a native view gets nested list items.
+			const row = palette.native ? line.replace(TREE_ROW, (_, indent: string) => `${indent.replace(/│/g, " ")}- `) : line;
+			out.push(decorateLine(row, palette, open, close));
 		}
 	}
 	return out.join("\n");
@@ -246,7 +253,7 @@ function decorateLine(line: string, palette: Palette, open: string, close: strin
 		result += prose.replace(INLINE, (match, slashes: string | undefined, marker: string | undefined, label: string | undefined) => {
 			if (label !== undefined) {
 				if (!label.trim()) return match;
-				if (palette.chips) {
+				if (palette.native) {
 					const text = pillText(label);
 					return text.includes("`") ? match : `\`${text}\``;
 				}
@@ -323,8 +330,8 @@ export default function emphasis(pi: ExtensionAPI) {
 	});
 	pi.registerAssistantTextRenderer(({ text }) => {
 		if (!currentTheme) return undefined;
-		// Tern's native view draws the Markdown itself: pills become code chips and nothing is colored.
-		if (isNativeRendering()) return decorate(text, { bold: (bold) => bold, chips: true });
+		// Tern's native view draws the Markdown itself: pills become code chips, trees become lists, nothing is colored.
+		if (isNativeRendering()) return decorate(text, { bold: (bold) => bold, native: true });
 		// Rebuild when the theme changes, so /theme switches recolor new output.
 		const theme = currentTheme();
 		if (built?.theme !== theme) built = { theme, palette: createPalette(theme, process.env.PI_EMPHASIS_COLOR || "mdLink") };

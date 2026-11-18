@@ -95,11 +95,18 @@ test("tone pills tint the tool panel with the tone's color, or fall back to reve
 	expect(palette.pills!.warning).toEqual({ label: "\x1b[38;fg-warningm\x1b[7m", cap: "\x1b[38;fg-warningm" });
 });
 
-test("chips draw pills as code spans and add no color codes, for a view that draws the Markdown itself", () => {
-	const native = (text: string) => decorate(text, { bold: (bold) => bold, chips: true });
-	expect(native("**Result:** [[Completed]] build → [[Failed: 3 tests]] ✓")).toBe("**\uf11e Result:** `\uf00c Done` build → `\uf00d Failed: 3 tests` ✓");
-	expect(native("**bold [[Needs you]] still bold**")).toBe("**bold `\uf007 Needs you` still bold**");
-	expect(native("`[[Done]]` stays code")).toBe("`[[Done]]` stays code");
+describe("native view, which draws the Markdown itself", () => {
+	const native = (text: string) => decorate(text, { bold: (bold) => bold, native: true });
+	test("pills become code spans and nothing is colored", () => {
+		expect(native("**Result:** [[Completed]] build → [[Failed: 3 tests]] ✓")).toBe("**\uf11e Result:** `\uf00c Done` build → `\uf00d Failed: 3 tests` ✓");
+		expect(native("**bold [[Needs you]] still bold**")).toBe("**bold `\uf007 Needs you` still bold**");
+		expect(native("`[[Done]]` stays code")).toBe("`[[Done]]` stays code");
+	});
+	test("tree rows become nested list items, at any depth and under a list item", () => {
+		expect(native("root\n├── **Fix:** api\n│   └── child\n└── [[Done]] worker")).toBe("root\n- **\uf0ad Fix:** api\n    - child\n- `\uf00c Done` worker");
+		expect(native("- **Evidence:**\n  ├── one\n  └── two")).toBe("- **\uf06e Evidence:**\n  - one\n  - two");
+		expect(native("```\n├── kept\n```")).toBe("```\n├── kept\n```");
+	});
 });
 
 describe("reply guidance", () => {

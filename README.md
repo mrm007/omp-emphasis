@@ -147,7 +147,7 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 ## Limits
 
 - A bold span that continues onto a second source line is colored only on its first line.
-- Tern's native view draws the Markdown itself and cannot show terminal colors, so there each pill is a code chip with its icon and word, without its tone color. Labels and icons are the same as in the terminal; bold, arrows, marks and tree lines take Tern's own styling.
+- Tern's native view draws the Markdown itself, in a proportional font, and cannot show terminal colors. There each pill is a code chip with its icon and word, without its tone color, and tree rows become nested list items because box-drawing connectors only line up in a monospace font. Labels and icons are the same as in the terminal; bold, arrows and marks take Tern's own styling.
 - Checked on macOS only, with omp 18.22.2.
 
 ## Development
