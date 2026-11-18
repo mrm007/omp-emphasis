@@ -147,7 +147,7 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 ## Limits
 
 - A bold span that continues onto a second source line is colored only on its first line.
-- Tern's native view draws the Markdown itself, in a proportional font, and cannot show terminal colors. There each pill is an inline math color box (`$\colorbox{…}{…}$`) in the theme's colors, with its icon just outside the box, so the word is set in the math font. Words with a backslash, caret or tilde stay uncolored code chips. Tree rows become nested list items, because box-drawing connectors only line up in a monospace font. Labels and icons are the same as in the terminal; bold, arrows and marks take Tern's own styling.
+- Tern's native view draws the Markdown itself, in a proportional font, and cannot show terminal colors. There each pill is an inline math color box (`$\colorbox{…}{…}$`) in the theme's colors, with its word in the math sans-serif, slightly larger than the prose and not bold. Its icon sits just outside the box, because Tern draws icon glyphs inside math blank. Words with a backslash, caret or tilde stay uncolored code chips. Tree rows become nested list items, because box-drawing connectors only line up in a monospace font. Labels and icons are the same as in the terminal; bold, arrows and marks take Tern's own styling.
 - Checked on macOS only, with omp 18.22.2.
 
 ## Development
@@ -159,3 +159,14 @@ python3 demo/shots.py        # redraw the demo replies in a real omp session, as
 ```
 
 `demo/` holds the two example replies. `sgr-sampler.sh` prints every terminal text style so you can see which ones your terminal draws.
+
+To see a reply in Tern's native view without touching your windows, start a headless Tern and replay a session in it:
+
+```sh
+tern serve --control /tmp/check.sock --out /tmp/shots &
+tern ctl --control /tmp/check.sock type '"omp --resume /path/to/session.jsonl"'
+tern ctl --control /tmp/check.sock key enter
+tern ctl --control /tmp/check.sock resize 1100 1900   # taller, to fit the whole reply
+tern ctl --control /tmp/check.sock shot reply         # writes /tmp/shots/serve/reply.png
+tern ctl --control /tmp/check.sock quit
+```

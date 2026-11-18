@@ -255,15 +255,16 @@ function pill(label: string, palette: Palette): string {
 }
 
 /**
- * A pill as an inline math color box, the one colored element a native view's Markdown can draw. The icon stays
- * outside the box, where the view draws icon glyphs. Undefined for a word with characters that have no simple escape.
+ * A pill as an inline math color box, the one colored element a native view's Markdown can draw. The word is set in
+ * the math sans-serif, closer to the prose than its serif. The icon stays outside the box: inside, Tern draws icon
+ * glyphs blank. Undefined for a word with characters that have no simple escape.
  */
 function mathPill(label: string, colors: NonNullable<Palette["chipColors"]>): string | undefined {
 	const { icon, word } = splitLabel(label);
 	const text = word || label.trim();
 	if (/[\\^~]/.test(text)) return undefined;
 	const { bg, fg } = colors[toneOf(label)];
-	const box = `$\\colorbox{${bg}}{\\textcolor{${fg}}{\\text{${text.replace(/[#$%&_{}]/g, "\\$&")}}}}$`;
+	const box = `$\\colorbox{${bg}}{\\textcolor{${fg}}{\\textsf{${text.replace(/[#$%&_{}]/g, "\\$&")}}}}$`;
 	return icon && process.env.PI_EMPHASIS_PILL_ICONS !== "0" ? `${icon} ${box}` : box;
 }
 

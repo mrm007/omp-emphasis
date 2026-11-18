@@ -111,8 +111,8 @@ describe("native view, which draws the Markdown itself", () => {
 	});
 	test("with 24-bit theme colors, pills become math color boxes with the icon outside", () => {
 		const math = (text: string) => decorate(text, { bold: (bold) => bold, native: true, chipColors: chipColors(truecolor) });
-		expect(math("[[In progress 40%]] now")).toBe("\uf110 $\\colorbox{#4b3a22}{\\textcolor{#ffb347}{\\text{In progress 40\\%}}}$ now");
-		expect(math("[[Costs money]]")).toBe("\uf155 $\\colorbox{#c0392b}{\\textcolor{#ffffff}{\\text{Costs money}}}$");
+		expect(math("[[In progress 40%]] now")).toBe("\uf110 $\\colorbox{#4b3a22}{\\textcolor{#ffb347}{\\textsf{In progress 40\\%}}}$ now");
+		expect(math("[[Costs money]]")).toBe("\uf155 $\\colorbox{#c0392b}{\\textcolor{#ffffff}{\\textsf{Costs money}}}$");
 		// A backslash, caret or tilde has no simple escape, so that pill stays a code span.
 		expect(math("[[a~b]]")).toBe("`a~b`");
 		expect(chipColors(theme)).toBeUndefined();
