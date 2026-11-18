@@ -147,7 +147,8 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 ## Limits
 
 - A bold span that continues onto a second source line is colored only on its first line.
-- Checked on macOS only, with omp 18.22.2 in tmux. The native view in Tern also runs this extension and has not been checked.
+- Tern's native view draws the Markdown itself and cannot show terminal colors, so there each pill is a code chip with its icon and word, without its tone color. Labels and icons are the same as in the terminal; bold, arrows, marks and tree lines take Tern's own styling.
+- Checked on macOS only, with omp 18.22.2.
 
 ## Development
 

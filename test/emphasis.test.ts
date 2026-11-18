@@ -95,6 +95,13 @@ test("tone pills tint the tool panel with the tone's color, or fall back to reve
 	expect(palette.pills!.warning).toEqual({ label: "\x1b[38;fg-warningm\x1b[7m", cap: "\x1b[38;fg-warningm" });
 });
 
+test("chips draw pills as code spans and add no color codes, for a view that draws the Markdown itself", () => {
+	const native = (text: string) => decorate(text, { bold: (bold) => bold, chips: true });
+	expect(native("**Result:** [[Completed]] build → [[Failed: 3 tests]] ✓")).toBe("**\uf11e Result:** `\uf00c Done` build → `\uf00d Failed: 3 tests` ✓");
+	expect(native("**bold [[Needs you]] still bold**")).toBe("**bold `\uf007 Needs you` still bold**");
+	expect(native("`[[Done]]` stays code")).toBe("`[[Done]]` stays code");
+});
+
 describe("reply guidance", () => {
 	const text = replyGuidance();
 	test("names every core word, and each one is colored as its tone", () => {

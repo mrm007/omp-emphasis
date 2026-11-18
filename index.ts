@@ -8,6 +8,7 @@
 // In the terminal interface it also adds a reply_style section to the system prompt, telling the
 // model how to write these (PI_EMPHASIS_GUIDANCE=0 turns that off).
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import { isNativeRendering } from "@oh-my-pi/pi-tui/native/state";
 
 type Colorize = (text: string) => string;
 export type PillTone = "success" | "error" | "warning" | "danger" | "mode" | "owner" | "neutral";
@@ -24,6 +25,8 @@ export interface Palette {
 	tree?: Colorize;
 	/** Rounded Nerd Font end caps; false draws square chips with a space on each side. */
 	roundCaps?: boolean;
+	/** Pills as inline code spans, for a view that draws the Markdown itself and would show color codes as text. */
+	chips?: boolean;
 }
 
 /** Minimal slice of omp's Theme used to build a palette. */
@@ -204,11 +207,16 @@ function withLabelIcon(label: string): string {
 // A line's leading bold label, after an optional list marker or tree connector.
 const LEAD_LABEL = /^(\s*(?:[-*+]|\d+\.)?\s*(?:[├└]──\s*)?\*\*)([^*`\n]{1,32})(\*\*)/;
 
+/** A pill's text: its word, after its icon unless icons are off. */
+function pillText(label: string): string {
+	const { icon, word } = splitLabel(label);
+	return icon && word && process.env.PI_EMPHASIS_PILL_ICONS !== "0" ? `${icon} ${word}` : word || label.trim();
+}
+
 function pill(label: string, palette: Palette): string {
 	const style = palette.pills![toneOf(label)];
 	// No-break spaces keep a two-word pill on one line when omp wraps the paragraph.
-	const { icon, word } = splitLabel(label);
-	const text = (icon && word && process.env.PI_EMPHASIS_PILL_ICONS !== "0" ? `${icon} ${word}` : word || label.trim()).replace(/ /g, "\u00a0");
+	const text = pillText(label).replace(/ /g, "\u00a0");
 	const [left, right] = palette.roundCaps ? ["\ue0b6", "\ue0b4"] : ["", ""];
 	const pad = palette.roundCaps ? "" : "\u00a0";
 	const capL = left ? `${style.cap}${left}\x1b[39m` : "";
@@ -237,7 +245,12 @@ function decorateLine(line: string, palette: Palette, open: string, close: strin
 		if (palette.tree) prose = prose.replace(/[├└]──/g, (m) => palette.tree!(m) + (inBold ? open : ""));
 		result += prose.replace(INLINE, (match, slashes: string | undefined, marker: string | undefined, label: string | undefined) => {
 			if (label !== undefined) {
-				if (!palette.pills || !label.trim()) return match;
+				if (!label.trim()) return match;
+				if (palette.chips) {
+					const text = pillText(label);
+					return text.includes("`") ? match : `\`${text}\``;
+				}
+				if (!palette.pills) return match;
 				return pill(label, palette) + reopen();
 			}
 			if ((slashes ?? "").length % 2 === 1) return match; // escaped marker
@@ -310,6 +323,8 @@ export default function emphasis(pi: ExtensionAPI) {
 	});
 	pi.registerAssistantTextRenderer(({ text }) => {
 		if (!currentTheme) return undefined;
+		// Tern's native view draws the Markdown itself: pills become code chips and nothing is colored.
+		if (isNativeRendering()) return decorate(text, { bold: (bold) => bold, chips: true });
 		// Rebuild when the theme changes, so /theme switches recolor new output.
 		const theme = currentTheme();
 		if (built?.theme !== theme) built = { theme, palette: createPalette(theme, process.env.PI_EMPHASIS_COLOR || "mdLink") };
