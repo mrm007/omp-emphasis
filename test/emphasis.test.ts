@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CONTEXT_WORDS, VOCABULARY, createPalette, decorate, replyGuidance, toneOf, type ThemeLike } from "../index.ts";
+import { CONTEXT_WORDS, VOCABULARY, chipColors, createPalette, decorate, replyGuidance, toneOf, type ThemeLike } from "../index.ts";
 
 // A theme whose colors are readable tags, so tests can assert on what was colored.
 const theme = {
@@ -82,12 +82,14 @@ test("icons can be turned off", () => {
 	}
 });
 
+// A 24-bit theme: a dark panel, an orange warning, and black for every other color.
+const truecolor = {
+	fg: (_color: string, text: string) => text,
+	getFgAnsi: (color: string) => (color === "warning" ? "\x1b[38;2;255;179;71m" : "\x1b[38;2;0;0;0m"),
+	getBgAnsi: () => "\x1b[48;2;15;18;22m",
+} as unknown as ThemeLike;
+
 test("tone pills tint the tool panel with the tone's color, or fall back to reverse video", () => {
-	const truecolor = {
-		fg: (_color: string, text: string) => text,
-		getFgAnsi: (color: string) => (color === "warning" ? "\x1b[38;2;255;179;71m" : "\x1b[38;2;0;0;0m"),
-		getBgAnsi: () => "\x1b[48;2;15;18;22m",
-	} as unknown as ThemeLike;
 	const warning = createPalette(truecolor).pills!.warning;
 	expect(warning.label).toBe("\x1b[48;2;75;58;34m\x1b[38;2;255;179;71m");
 	expect(warning.cap).toBe("\x1b[38;2;75;58;34m");
@@ -106,6 +108,14 @@ describe("native view, which draws the Markdown itself", () => {
 		expect(native("root\n├── **Fix:** api\n│   └── child\n└── [[Done]] worker")).toBe("root\n- **\uf0ad Fix:** api\n    - child\n- `\uf00c Done` worker");
 		expect(native("- **Evidence:**\n  ├── one\n  └── two")).toBe("- **\uf06e Evidence:**\n  - one\n  - two");
 		expect(native("```\n├── kept\n```")).toBe("```\n├── kept\n```");
+	});
+	test("with 24-bit theme colors, pills become math color boxes with the icon outside", () => {
+		const math = (text: string) => decorate(text, { bold: (bold) => bold, native: true, chipColors: chipColors(truecolor) });
+		expect(math("[[In progress 40%]] now")).toBe("\uf110 $\\colorbox{#4b3a22}{\\textcolor{#ffb347}{\\text{In progress 40\\%}}}$ now");
+		expect(math("[[Costs money]]")).toBe("\uf155 $\\colorbox{#c0392b}{\\textcolor{#ffffff}{\\text{Costs money}}}$");
+		// A backslash, caret or tilde has no simple escape, so that pill stays a code span.
+		expect(math("[[a~b]]")).toBe("`a~b`");
+		expect(chipColors(theme)).toBeUndefined();
 	});
 });
 

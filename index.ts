@@ -27,9 +27,11 @@ export interface Palette {
 	roundCaps?: boolean;
 	/**
 	 * For a view that draws the Markdown itself in a proportional font and would show color codes as text:
-	 * pills become inline code spans and tree rows become nested list items.
+	 * pills become math color boxes (code spans without `chipColors`) and tree rows become nested list items.
 	 */
 	native?: boolean;
+	/** Hex pill colors for a native view, which draws each pill as a math color box. */
+	chipColors?: Record<PillTone, { bg: string; fg: string }>;
 }
 
 /** Minimal slice of omp's Theme used to build a palette. */
@@ -124,12 +126,33 @@ const solid = (code: number) => ({ label: `\x1b[${code}m\x1b[7m`, cap: `\x1b[${c
 /** The red, green and blue of a 24-bit color escape; undefined for any other form. */
 const rgbOf = (ansi: string) => ansi.match(/^\x1b\[[34]8;2;(\d+);(\d+);(\d+)m$/)?.slice(1).map(Number);
 
-/** A panel background moved a quarter of the way toward a tone's color; empty when either is not 24-bit. */
+/** A panel color moved a quarter of the way toward a tone's color: the background of that tone's pill. */
+const toward = (panel: number[], tone: number[]) => panel.map((c, i) => Math.round(c + (tone[i] - c) * 0.25));
+
+/** A panel background tinted toward a tone's color; empty when either is not 24-bit. */
 function tint(fgAnsi: string, panelAnsi: string): string {
 	const fg = rgbOf(fgAnsi);
 	const panel = rgbOf(panelAnsi);
 	if (!fg || !panel) return "";
-	return `\x1b[48;2;${panel.map((c, i) => Math.round(c + (fg[i] - c) * 0.25)).join(";")}m`;
+	return `\x1b[48;2;${toward(panel, fg).join(";")}m`;
+}
+
+/**
+ * Pill colors for a native view: the terminal's tinted panels for success, error and warning, a soft accent for any
+ * other word, and white on fixed colors for the solid tones, since the terminal's own colors are not available there.
+ * Undefined when the theme's colors are not 24-bit.
+ */
+export function chipColors(theme: ThemeLike): Palette["chipColors"] {
+	const hex = (rgb: number[]) => `#${rgb.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+	const panel = rgbOf(theme.getBgAnsi("toolPendingBg" as never));
+	const soft = (name: string) => {
+		const fg = rgbOf(theme.getFgAnsi(name as never));
+		return fg && panel ? { bg: hex(toward(panel, fg)), fg: hex(fg) } : undefined;
+	};
+	const [success, error, warning, neutral] = ["success", "error", "warning", "accent"].map(soft);
+	if (!success || !error || !warning || !neutral) return undefined;
+	const white = "#ffffff";
+	return { success, error, warning, neutral, danger: { bg: "#c0392b", fg: white }, mode: { bg: "#0f8b9b", fg: white }, owner: { bg: "#2f62c9", fg: white } };
 }
 
 export function createPalette(theme: ThemeLike, boldColor = "mdLink"): Palette {
@@ -231,6 +254,19 @@ function pill(label: string, palette: Palette): string {
 	return `${capL}${style.label}\x1b[1m${pad}${text}${pad}\x1b[22;27m\x1b[39m\x1b[49m${capR}`;
 }
 
+/**
+ * A pill as an inline math color box, the one colored element a native view's Markdown can draw. The icon stays
+ * outside the box, where the view draws icon glyphs. Undefined for a word with characters that have no simple escape.
+ */
+function mathPill(label: string, colors: NonNullable<Palette["chipColors"]>): string | undefined {
+	const { icon, word } = splitLabel(label);
+	const text = word || label.trim();
+	if (/[\\^~]/.test(text)) return undefined;
+	const { bg, fg } = colors[toneOf(label)];
+	const box = `$\\colorbox{${bg}}{\\textcolor{${fg}}{\\text{${text.replace(/[#$%&_{}]/g, "\\$&")}}}}$`;
+	return icon && process.env.PI_EMPHASIS_PILL_ICONS !== "0" ? `${icon} ${box}` : box;
+}
+
 function decorateLine(line: string, palette: Palette, open: string, close: string): string {
 	// Odd parts are inline code spans, which stay untouched.
 	const parts = line.replace(LEAD_LABEL, (_, before: string, label: string, after: string) => before + withLabelIcon(label) + after).split(/(`+[^`]*?`+)/g);
@@ -254,6 +290,8 @@ function decorateLine(line: string, palette: Palette, open: string, close: strin
 			if (label !== undefined) {
 				if (!label.trim()) return match;
 				if (palette.native) {
+					const math = palette.chipColors && mathPill(label, palette.chipColors);
+					if (math) return math;
 					const text = pillText(label);
 					return text.includes("`") ? match : `\`${text}\``;
 				}
@@ -317,7 +355,7 @@ export function replyGuidance(): string {
 
 export default function emphasis(pi: ExtensionAPI) {
 	let currentTheme: (() => ThemeLike) | undefined;
-	let built: { theme: ThemeLike; palette: Palette } | undefined;
+	let built: { theme: ThemeLike; palette: Palette; native: Palette } | undefined;
 	pi.on("session_start", (_event, ctx) => {
 		if (ctx.mode !== "tui") return;
 		currentTheme = () => ctx.ui.theme as unknown as ThemeLike;
@@ -330,11 +368,13 @@ export default function emphasis(pi: ExtensionAPI) {
 	});
 	pi.registerAssistantTextRenderer(({ text }) => {
 		if (!currentTheme) return undefined;
-		// Tern's native view draws the Markdown itself: pills become code chips, trees become lists, nothing is colored.
-		if (isNativeRendering()) return decorate(text, { bold: (bold) => bold, native: true });
 		// Rebuild when the theme changes, so /theme switches recolor new output.
 		const theme = currentTheme();
-		if (built?.theme !== theme) built = { theme, palette: createPalette(theme, process.env.PI_EMPHASIS_COLOR || "mdLink") };
-		return decorate(text, built.palette);
+		if (built?.theme !== theme) {
+			const palette = createPalette(theme, process.env.PI_EMPHASIS_COLOR || "mdLink");
+			built = { theme, palette, native: { bold: (bold) => bold, native: true, chipColors: chipColors(theme) } };
+		}
+		// Tern's native view draws the Markdown itself: pills become math color boxes, trees become lists, nothing else is colored.
+		return decorate(text, isNativeRendering() ? built.native : built.palette);
 	});
 }
