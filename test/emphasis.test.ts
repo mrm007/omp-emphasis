@@ -82,6 +82,19 @@ test("icons can be turned off", () => {
 	}
 });
 
+test("tone pills tint the tool panel with the tone's color, or fall back to reverse video", () => {
+	const truecolor = {
+		fg: (_color: string, text: string) => text,
+		getFgAnsi: (color: string) => (color === "warning" ? "\x1b[38;2;255;179;71m" : "\x1b[38;2;0;0;0m"),
+		getBgAnsi: () => "\x1b[48;2;15;18;22m",
+	} as unknown as ThemeLike;
+	const warning = createPalette(truecolor).pills!.warning;
+	expect(warning.label).toBe("\x1b[48;2;75;58;34m\x1b[38;2;255;179;71m");
+	expect(warning.cap).toBe("\x1b[38;2;75;58;34m");
+	// The tag theme's colors are not 24-bit, so there is nothing to tint.
+	expect(palette.pills!.warning).toEqual({ label: "\x1b[38;fg-warningm\x1b[7m", cap: "\x1b[38;fg-warningm" });
+});
+
 describe("reply guidance", () => {
 	const text = replyGuidance();
 	test("names every core word, and each one is colored as its tone", () => {

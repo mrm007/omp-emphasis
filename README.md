@@ -1,8 +1,8 @@
-# Pi Emphasis
+# omp Emphasis
 
-Replies you can scan. This [Pi](https://pi.dev/) extension turns `[[Done]]`, `[[Failed]]` and `[[Needs you]]` into colored pills with icons, gives headings and lead labels an icon from their word, and colors bold text, arrows and tree lines.
+Replies you can scan. This [omp](https://github.com/can1357/oh-my-pi) extension turns `[[Done]]`, `[[Failed]]` and `[[Needs you]]` into colored pills with icons, gives headings and lead labels an icon from their word, and colors bold text, arrows and tree lines. It is a port of John Lindquist's [pi-emphasis](https://github.com/johnlindquist/pi-emphasis), which omp cannot load because it uses Pi 1.5 APIs that omp does not have.
 
-![A Pi reply about a failed deploy, with colored pills, icons and labels](screenshots/reply.png)
+![An omp reply about a failed deploy, with colored pills, icons and labels](screenshots/reply.png)
 
 The reply above is an invented example about an imagined deploy. This is the same reply without the extension:
 
@@ -14,24 +14,25 @@ It changes only what is drawn. Stored messages, copied text and HTML exports kee
 
 | You need | Why | Without it |
 |---|---|---|
-| [Pi](https://github.com/earendil-works/pi) 1.5 or newer (checked on 1.5.0) | This is a Pi extension | It cannot be installed |
+| [omp](https://github.com/can1357/oh-my-pi) 18.14 or newer (checked on 18.22.2) | Earlier versions cannot change how replies are drawn | The extension fails to load |
+| The `extensionRenderers.assistantText` setting turned on | omp only lets extensions change how replies are drawn when this setting is on | Pills stay as `[[Done]]` |
 | A terminal that can draw [Nerd Font](https://www.nerdfonts.com/) symbols | The icons and the rounded pill ends are Nerd Font symbols | You see empty boxes or question marks. See [Set up your terminal](#set-up-your-terminal) |
-| A terminal with color | Pills are colored backgrounds | Pills are drawn in reverse video, all in one color |
-| `git` | `pi install` clones this repository | The install fails |
+| A terminal with 24-bit color | Pills are the theme's tool panel tinted with each tone's color | Pills are drawn in reverse video |
+| `git` | `omp install` clones this repository | The install fails |
 
 Checked on macOS only. Setup takes about two minutes if your terminal already has the symbols.
 
 ## Install
 
 ```sh
-pi install git:github.com/johnlindquist/pi-emphasis
+omp install git:github.com/mrm007/omp-emphasis
+omp config set extensionRenderers.assistantText true
 ```
 
-Then run `/reload` in Pi, or start Pi again.
+Then start omp again. The setting is also under Tools, Extensions, Extension Reply Renderers in `/settings`.
 
-- Update: `pi update --extensions`
-- Try once without installing: `pi -e git:github.com/johnlindquist/pi-emphasis`
-- Remove: `pi remove git:github.com/johnlindquist/pi-emphasis`
+- List: `omp plugin list`
+- Remove: `omp plugin uninstall omp-emphasis`
 
 ## Set up your terminal
 
@@ -60,30 +61,30 @@ Or download any family from [nerdfonts.com](https://www.nerdfonts.com/font-downl
 
 To keep your current font, install only the symbols with `brew install --cask font-symbols-only-nerd-font` and add "Symbols Nerd Font" as a fallback font where your terminal supports one.
 
-**3. Check it in Pi.** After installing the extension and running `/reload`, ask:
+**3. Check it in omp.** After installing the extension and starting omp again, ask:
 
 > Reply with one line that uses the pills [[Done]], [[Needs you]], [[Failed]] and [[Costs money]].
 
 You should see four rounded pills in green, yellow, soft red and solid red, each with an icon.
 
-**No Nerd Font, or you prefer plain chips?** Start Pi with the icons and rounded ends turned off. To make it permanent, put the two `export` lines in your shell profile, such as `~/.zshrc`:
+**No Nerd Font, or you prefer plain chips?** Start omp with the icons and rounded ends turned off. To make it permanent, put the two `export` lines in your shell profile, such as `~/.zshrc`:
 
 ```sh
 export PI_EMPHASIS_PILL_ICONS=0
 export PI_EMPHASIS_ROUND_CAPS=0
-pi
+omp
 ```
 
 ## The rules come with it
 
-An agent writes pills only when it is told how. In Pi's terminal interface the extension adds a `reply_style` section to the system prompt on every run, so there is nothing to paste into an `AGENTS.md`. The section tells the agent:
+An agent writes pills only when it is told how. In omp's terminal interface the extension adds a `<reply_style>` block to the end of the system prompt for every prompt, so there is nothing to paste into an `AGENTS.md`. The block tells the agent:
 
 - which words to use for each color, and that every failure, ask and unchecked claim needs its pill
 - to open a reply with the kind of work it understood, and to mark consequences and ownership
 - to follow each attention pill with the action it calls for, such as the fastest check after `[[Unverified]]`
 - to write labels as plain words, because the extension adds the icons
 
-The word lists in that section are read from the same tables that color the pills, so the rules and the drawing cannot drift apart. It adds about 1,500 tokens to the prompt. Print, JSON and RPC runs do not get the section, since nothing there draws pills.
+The word lists in that block are read from the same tables that color the pills, so the rules and the drawing cannot drift apart. It adds about 1,500 tokens to the prompt. Print, JSON and RPC runs and subagents do not get the block, since nothing there draws pills.
 
 To keep the drawing and write your own rules, set `PI_EMPHASIS_GUIDANCE=0`.
 
@@ -111,7 +112,7 @@ Write `[[Word]]` beside the thing it describes. The word decides the color and t
 ## Labels and shapes
 
 - **Headings and lead labels.** A `##` heading, or bold text at the start of a line or list item, takes an icon when it is one of: Finding, Result, Status, Evidence, Cause, Effect, Fix, Risk, Limits, Cost, Decision, Options, Plan, Next, Why, How, Rule, Example, Checked, Verdict, Rollback, Undo, Review, Scoreboard, Terminal, Folder, File, Branch, Ideas, Pills, Colors, Icons. A trailing colon is fine.
-- **Action lead-ins.** Bold **Check:**, **Do:**, **Next:**, **Unblock:**, **Left:**, **Run:**, **Guard:**, **Undo:** and **See:** take an icon anywhere in a line, so the action that follows a pill is easy to find: `[[Unverified]] the red pills on your screen. **Check:** run /reload.` The colon is required.
+- **Action lead-ins.** Bold **Check:**, **Do:**, **Next:**, **Unblock:**, **Left:**, **Run:**, **Guard:**, **Undo:** and **See:** take an icon anywhere in a line, so the action that follows a pill is easy to find: `[[Unverified]] the red pills on your screen. **Check:** start omp again.` The colon is required.
 - **Bold.** `**anchor term**` keeps its weight and takes the theme's link color.
 - **Marks.** `✓` takes the success color, `✗` the error color, and `→` the accent color.
 - **Trees.** `├──` and `└──` are dimmed so the content stands out.
@@ -120,7 +121,7 @@ Your own messages, inline code, fenced code and escaped asterisks are left alone
 
 ## Settings
 
-Environment variables. Set them in the shell before starting Pi, or in your shell profile:
+Environment variables, with the same names as in pi-emphasis. Set them in the shell before starting omp, or in your shell profile:
 
 - `PI_EMPHASIS_COLOR`: theme color for bold text (default `mdLink`).
 - `PI_EMPHASIS_ROUND_CAPS=0`: square chips, for fonts without Nerd Font symbols.
@@ -133,26 +134,27 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 
 | You see | Cause | Fix |
 |---|---|---|
-| `[[Done]]` as plain text | The extension is not loaded | Run `/reload`. Check that `pi list` shows pi-emphasis |
+| `[[Done]]` as plain text | The extension is not loaded, or `extensionRenderers.assistantText` is off | Run `omp config get extensionRenderers.assistantText` and check that `omp plugin list` shows omp-emphasis, then start omp again |
+| `Failed to load extension: pi.registerAssistantTextRenderer is not a function` | The `omp` on your PATH is older than 18.14 | Run `which -a omp` and update or remove the old one |
 | Boxes or question marks in or around pills | The terminal has no Nerd Font symbols | [Set up your terminal](#set-up-your-terminal), or turn icons and rounded ends off |
 | Icons that overlap the next letter | The font draws its icons two cells wide | Use the "Mono" variant of the Nerd Font, such as JetBrainsMono Nerd Font Mono |
-| Pills that are all one color, in reverse video | Pi's theme has no panel colors, which happens with the `system` theme when the terminal reports none | Choose a theme with `/theme`, such as `dark` |
+| Pills that are all one color, in reverse video | The theme's colors are not 24-bit, so there is no panel to tint | Set `COLORTERM=truecolor` if your terminal draws 24-bit color |
 | Solid red, cyan or blue pills in odd shades | Those three use your terminal's own colors | Change the terminal's color theme |
 | Bold that looks no heavier than normal text | The terminal draws normal text at a medium weight, or its font has no real bold | Choose a font with a distinct bold. In Ghostty, `font-style-bold` selects a heavier face |
-| The agent writes no pills | The rules reach the agent only in Pi's terminal interface, and not when `PI_EMPHASIS_GUIDANCE=0` | Unset the variable. Print, JSON and RPC runs never get the rules |
+| The agent writes no pills | The rules reach the agent only in omp's terminal interface, and not when `PI_EMPHASIS_GUIDANCE=0` | Unset the variable. Print, JSON and RPC runs and subagents never get the rules |
 | Pills inside code blocks stay as typed | Code is left alone on purpose | Nothing to fix |
 
 ## Limits
 
 - A bold span that continues onto a second source line is colored only on its first line.
-- Checked on macOS only, in Ghostty and the Herdr app.
+- Checked on macOS only, with omp 18.22.2 in tmux. The native view in Tern also runs this extension and has not been checked.
 
 ## Development
 
 ```sh
 bun install
 bun run check                # types and tests
-python3 demo/shots.py        # redraw the demo replies in a real Pi session, as HTML to screenshot
+python3 demo/shots.py        # redraw the demo replies in a real omp session, as HTML to screenshot
 ```
 
 `demo/` holds the two example replies. `sgr-sampler.sh` prints every terminal text style so you can see which ones your terminal draws.

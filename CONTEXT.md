@@ -1,6 +1,6 @@
 # Context
 
-Pi Emphasis changes how an assistant reply is drawn in Pi's terminal. It never changes what is stored, copied or exported.
+omp Emphasis changes how an assistant reply is drawn in omp's terminal. It never changes what is stored, copied or exported. It is a port of pi-emphasis; only the border below and the pill tint differ from it.
 
 ## Glossary
 
@@ -11,12 +11,13 @@ Pi Emphasis changes how an assistant reply is drawn in Pi's terminal. It never c
 - **Synonym**: a word that is displayed as another word, so one state always reads the same (Completed is shown as Done).
 - **Label**: a `##` heading, or bold text that opens a line or list item. A known label takes an icon.
 - **Lead-in**: a bold word ending in a colon that introduces the action a pill calls for, such as "Check:".
-- **Reply guidance**: the rules added to the system prompt as the `reply_style` section, in the terminal interface only.
-- **Palette**: the colors taken from the current Pi theme. It is rebuilt when the theme changes.
+- **Reply guidance**: the rules added to the end of the system prompt as a `<reply_style>` block, in the terminal interface only.
+- **Palette**: the colors taken from the current omp theme. It is rebuilt when the theme changes.
+- **Tint**: a tone's pill color, made by moving the theme's tool panel color a quarter of the way toward the tone's own color. omp themes have no warning panel and often leave the success and error panels untinted.
 
 ## Rules and where each lives
 
-All rules live in `index.ts` and are tested in `test/emphasis.test.ts` without Pi running.
+All rules live in `index.ts` and are tested in `test/emphasis.test.ts` without omp running.
 
 - Which tone a word has, and which words agents are told to write: `VOCABULARY` (`core` is taught, `also` is only accepted), read by `toneOf`.
 - Which icon a pill word has: `PILL_ICONS`.
@@ -29,4 +30,4 @@ All rules live in `index.ts` and are tested in `test/emphasis.test.ts` without P
 
 ## Border
 
-Pi hands the extension an assistant message's Markdown and the current theme. The extension returns Markdown with terminal color codes added. Before each run in the terminal interface, the extension also hands Pi the reply guidance as one prompt section. Nothing else crosses.
+omp calls the extension's assistant text renderer with each text block of an assistant reply; the renderer returns that Markdown with terminal color codes added, using the theme captured at session start. omp runs these renderers only while the `extensionRenderers.assistantText` setting is on. Before each prompt in the terminal interface, the extension appends the reply guidance to the system prompt blocks omp passes to `before_agent_start`. Nothing else crosses.

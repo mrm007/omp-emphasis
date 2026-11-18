@@ -1,16 +1,18 @@
-"""Render the demo replies in a real Pi session and write them as HTML pages to screenshot.
+"""Render the demo replies in a real omp session and write them as HTML pages to screenshot.
 
   python3 demo/shots.py            writes reply.html, without.html and vocabulary.html to demo/out/
 
-Each reply in demo/*.md is placed in a session file as an assistant message, opened by Pi inside a
+Each reply in demo/*.md is placed in a session file as an assistant message, opened by omp inside a
 detached tmux session with only this extension loaded, and the drawn screen is converted to HTML.
-Screenshot the <pre id="t"> element of each page with any browser. Needs pi, tmux, and a
+Screenshot the <pre id="t"> element of each page with any browser. Needs omp, tmux, and a
 JetBrains Mono Nerd Font in ~/Library/Fonts. No model is called.
 """
-import html, json, pathlib, re, subprocess, time, uuid
+import html, json, pathlib, re, shlex, shutil, subprocess, time, uuid
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "demo/out"
+# The omp on this shell's PATH: tmux starts a login shell, whose PATH may find a different one.
+OMP = shlex.quote(shutil.which("omp") or "omp")
 FONT = "file://" + str(pathlib.Path.home() / "Library/Fonts/JetBrainsMonoNerdFont-")
 A16=["#1d1f21","#e06c75","#98c379","#e5c07b","#61afef","#c678dd","#56b6c2","#d7dae0","#5c6370","#e06c75","#98c379","#e5c07b","#61afef","#c678dd","#56b6c2","#ffffff"]
 def c256(n):
@@ -83,11 +85,11 @@ def session(prompt, reply):
 def shot(name, prompt, reply_file, extension=True, rows=60, cols=112):
     agent = OUT / "agent"
     agent.mkdir(parents=True, exist_ok=True)
-    (agent / "settings.json").write_text('{"theme":"dark","quietStartup":true}')
+    (agent / "config.yml").write_text("theme:\n  dark: titanium\nsetupVersion: 3\nextensionRenderers:\n  assistantText: true\n")
     path = session(prompt, (ROOT / "demo" / reply_file).read_text())
     load = f"-e {ROOT / 'index.ts'}" if extension else ""
-    command = f"cd {OUT} && PI_CODING_AGENT_DIR={agent} COLORTERM=truecolor pi --session {path} -ne {load} -ns -np -nc --no-mcp --offline; sleep 60"
-    tmux = "pi-emphasis-shot"
+    command = f"cd {OUT} && PI_CODING_AGENT_DIR={agent} COLORTERM=truecolor {OMP} --resume {path} --no-extensions {load} --no-skills --no-context-files --offline; sleep 60"
+    tmux = "omp-emphasis-shot"
     subprocess.run(["tmux", "kill-session", "-t", tmux], capture_output=True)
     subprocess.run(["tmux", "new-session", "-d", "-s", tmux, "-x", str(cols), "-y", str(rows), command], check=True)
     time.sleep(8)

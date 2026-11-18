@@ -1,4 +1,4 @@
-// pi-emphasis: display-only emphasis for assistant replies in Pi's terminal.
+// omp-emphasis: display-only emphasis for assistant replies in omp's terminal.
 //
 //   **anchor term**   bold keeps its weight and takes a theme color (link blue by default)
 //   ✓ / ✗             take the success and error colors
@@ -7,7 +7,7 @@
 // Stored messages, copied text, and HTML exports keep the original Markdown.
 // In the terminal interface it also adds a reply_style section to the system prompt, telling the
 // model how to write these (PI_EMPHASIS_GUIDANCE=0 turns that off).
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 
 type Colorize = (text: string) => string;
 export type PillTone = "success" | "error" | "warning" | "danger" | "mode" | "owner" | "neutral";
@@ -26,7 +26,7 @@ export interface Palette {
 	roundCaps?: boolean;
 }
 
-/** Minimal slice of Pi's Theme used to build a palette. */
+/** Minimal slice of omp's Theme used to build a palette. */
 export interface ThemeLike {
 	fg(color: never, text: string): string;
 	getFgAnsi(color: never): string;
@@ -115,27 +115,41 @@ function bgToFg(bg: string): string {
 
 const solid = (code: number) => ({ label: `\x1b[${code}m\x1b[7m`, cap: `\x1b[${code}m` });
 
+/** The red, green and blue of a 24-bit color escape; undefined for any other form. */
+const rgbOf = (ansi: string) => ansi.match(/^\x1b\[[34]8;2;(\d+);(\d+);(\d+)m$/)?.slice(1).map(Number);
+
+/** A panel background moved a quarter of the way toward a tone's color; empty when either is not 24-bit. */
+function tint(fgAnsi: string, panelAnsi: string): string {
+	const fg = rgbOf(fgAnsi);
+	const panel = rgbOf(panelAnsi);
+	if (!fg || !panel) return "";
+	return `\x1b[48;2;${panel.map((c, i) => Math.round(c + (fg[i] - c) * 0.25)).join(";")}m`;
+}
+
 export function createPalette(theme: ThemeLike, boldColor = "mdLink"): Palette {
 	const fg = (name: string) => (text: string) => theme.fg(name as never, text);
-	const tone = (labelFg: string, bg: string) => {
-		const bgAnsi = theme.getBgAnsi(bg as never);
-		// A theme without its own panel colors (Pi's system theme when the terminal reports
-		// none) draws pills in reverse video: the tone's color becomes the background.
+	const tone = (labelFg: string, bgAnsi: string) => {
+		// Without a 24-bit panel to tint (a 256-color terminal, or a theme without panel
+		// colors) pills are drawn in reverse video: the tone's color becomes the background.
 		if (!bgAnsi || /^\x1b\[49m$/.test(bgAnsi)) {
 			const fgAnsi = theme.getFgAnsi((labelFg === "text" ? "accent" : labelFg) as never);
 			return { label: `${fgAnsi}\x1b[7m`, cap: fgAnsi };
 		}
 		return { label: bgAnsi + theme.getFgAnsi(labelFg as never), cap: bgToFg(bgAnsi) };
 	};
+	// omp themes have no warning panel, and many leave the success and error panels untinted,
+	// so each tone's pill is the tool panel tinted with that tone's own color.
+	const panel = theme.getBgAnsi("toolPendingBg" as never);
+	const tinted = (name: string) => tone(name, tint(theme.getFgAnsi(name as never), panel));
 	return {
 		bold: fg(boldColor),
 		passed: fg("success"),
 		failed: fg("error"),
 		pills: {
-			success: tone("success", "toolSuccessBg"),
-			error: tone("error", "toolErrorBg"),
-			warning: tone("warning", "searchMatchBg"),
-			neutral: tone("text", "selectedBg"),
+			success: tinted("success"),
+			error: tinted("error"),
+			warning: tinted("warning"),
+			neutral: tone("text", theme.getBgAnsi("selectedBg" as never)),
 			// Solid chips in the terminal's own magenta, cyan and blue: louder than the panel-colored tones.
 			danger: solid(31),
 			mode: solid(36),
@@ -165,7 +179,7 @@ export function decorate(markdown: string, palette: Palette): string {
 			fence = fenceMatch[1];
 			out.push(line);
 		} else if (/^ {0,3}#{1,6}\s/.test(line)) {
-			out.push(line.replace(/^( {0,3}#{1,6}\s+)(.+)$/, (_, hashes: string, title: string) => hashes + withLabelIcon(title))); // Pi already colors headings.
+			out.push(line.replace(/^( {0,3}#{1,6}\s+)(.+)$/, (_, hashes: string, title: string) => hashes + withLabelIcon(title))); // omp already colors headings.
 		} else {
 			out.push(decorateLine(line, palette, open, close));
 		}
@@ -192,7 +206,7 @@ const LEAD_LABEL = /^(\s*(?:[-*+]|\d+\.)?\s*(?:[├└]──\s*)?\*\*)([^*`\n]{
 
 function pill(label: string, palette: Palette): string {
 	const style = palette.pills![toneOf(label)];
-	// No-break spaces keep a two-word pill on one line when Pi wraps the paragraph.
+	// No-break spaces keep a two-word pill on one line when omp wraps the paragraph.
 	const { icon, word } = splitLabel(label);
 	const text = (icon && word && process.env.PI_EMPHASIS_PILL_ICONS !== "0" ? `${icon} ${word}` : word || label.trim()).replace(/ /g, "\u00a0");
 	const [left, right] = palette.roundCaps ? ["\ue0b6", "\ue0b4"] : ["", ""];
@@ -211,7 +225,7 @@ function decorateLine(line: string, palette: Palette, open: string, close: strin
 	for (let i = 0; i < parts.length; i++) {
 		const part = parts[i];
 		if (i % 2 === 1) {
-			// Pi's code color ends with a foreground reset; restore the bold color after it.
+			// omp's code color ends with a foreground reset; restore the bold color after it.
 			result += inBold ? `${part}${open}` : part;
 			continue;
 		}
@@ -281,10 +295,6 @@ export function replyGuidance(): string {
 - **Copyable text stays clean.** Keep pills out of paths, commands, code, literal output, and machine-readable data. Omit pills and tree shapes when the user asks for plain text, ASCII, or an exact format.`;
 }
 
-/** Earlier name, kept for callers of the first release. */
-export const colorBold = (markdown: string, palette: Palette | Colorize) =>
-	decorate(markdown, typeof palette === "function" ? { bold: palette } : palette);
-
 export default function emphasis(pi: ExtensionAPI) {
 	let currentTheme: (() => ThemeLike) | undefined;
 	let built: { theme: ThemeLike; palette: Palette } | undefined;
@@ -293,16 +303,16 @@ export default function emphasis(pi: ExtensionAPI) {
 		currentTheme = () => ctx.ui.theme as unknown as ThemeLike;
 	});
 	// The rules travel with the renderer: only a session that draws pills is told to write them.
-	pi.on("before_agent_start", (event) => {
-		const sections = (event.systemPromptOptions.sections ??= {});
-		if (currentTheme && process.env.PI_EMPHASIS_GUIDANCE !== "0") sections.reply_style = replyGuidance();
-		else delete sections.reply_style;
+	pi.on("before_agent_start", (event, ctx) => {
+		if (ctx.mode !== "tui" || !ctx.hasUI || process.env.PI_EMPHASIS_GUIDANCE === "0") return;
+		// omp passes the prompt as blocks, and a returned prompt replaces all of them.
+		return { systemPrompt: [...event.systemPrompt, `<reply_style>\n${replyGuidance()}\n</reply_style>`] };
 	});
-	pi.registerMarkdownTransformer((markdown, context) => {
-		if (!currentTheme || context.messageType !== "assistant") return markdown;
+	pi.registerAssistantTextRenderer(({ text }) => {
+		if (!currentTheme) return undefined;
 		// Rebuild when the theme changes, so /theme switches recolor new output.
 		const theme = currentTheme();
 		if (built?.theme !== theme) built = { theme, palette: createPalette(theme, process.env.PI_EMPHASIS_COLOR || "mdLink") };
-		return decorate(markdown, built.palette);
+		return decorate(text, built.palette);
 	});
 }
