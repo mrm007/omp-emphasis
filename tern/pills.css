@@ -21,6 +21,10 @@
 	font-size: 0.93em;
 	font-weight: 700;
 	text-decoration: none;
+	/* One box: Tern breaks a line inside a link, between its icon and its word, even with nowrap. */
+	display: inline-block;
+	/* As tall as the inline pill was, so a line holding a pill keeps its height. */
+	line-height: 1.3;
 	white-space: nowrap;
 	/* A pill is not a link: no pointer, no click, no hover. */
 	pointer-events: none;

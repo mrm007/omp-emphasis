@@ -109,7 +109,7 @@ describe("native view, which draws the Markdown itself", () => {
 	});
 	test("with the Tern plugin, pills become links to their tone, with Markdown in the label escaped", () => {
 		const links = (text: string) => decorate(text, { bold: (bold) => bold, native: true, pillLinks: true });
-		expect(links("**bold [[Completed]] still bold** [[Costs money]]")).toBe("**bold [\uf00c Done](#omp-pill-success) still bold** [\uf155 Costs money](#omp-pill-danger)");
+		expect(links("**bold [[Completed]] still bold** [[Costs money]]")).toBe("**bold [\uf00cDone](#omp-pill-success) still bold** [\uf155Costs money](#omp-pill-danger)");
 		expect(links("about $6 [[a_b *c* $d]]")).toBe("about $6 [a\\_b \\*c\\* \\$d](#omp-pill-neutral)");
 	});
 });
