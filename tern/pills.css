@@ -1,31 +1,45 @@
 /*
  * omp-emphasis sends each [[pill]] in an omp reply to Tern as a link to #omp-pill-<tone>.
- * These rules draw it as Tern draws a badge: text in the tone color on a 12% tint inside a 24% ring.
- * Plugin sheets are global, so every selector is scoped to those links.
+ * These rules draw it as the terminal draws a pill: bold mono text in the tone's color on the background
+ * tinted a quarter of the way toward it, and reverse video in the terminal's red, cyan and blue for
+ * consequences, kind of work and ownership. Plugin sheets are global, so every selector is scoped to those links.
  */
 .sf-md a[href^="#omp-pill-"] {
-	--tc: var(--accent);
+	/* Any word without a tone takes the link color, as context pills take a blue in the terminal. */
+	--tc: var(--sf-c-link);
 	color: var(--tc);
-	background: rgb(from var(--tc) r g b / 12%);
+	/* A lighter tint on light backgrounds keeps the tone text readable there. */
+	background: light-dark(
+		color-mix(in srgb, var(--tc) 16%, var(--tv-bg, var(--page))),
+		color-mix(in srgb, var(--tc) 25%, var(--tv-bg, var(--page)))
+	);
 	/* Tern underlines Markdown links with an inset shadow that only an important rule replaces. */
-	box-shadow: inset 0 0 0 1px rgb(from var(--tc) r g b / 24%) !important;
+	box-shadow: none !important;
 	border-radius: 999px;
-	padding: 0 7px;
-	font-weight: 500;
+	padding: 2px 7px;
+	font-family: var(--tv-font, var(--mono));
+	font-size: 0.93em;
+	font-weight: 700;
 	text-decoration: none;
 	white-space: nowrap;
 	/* A pill is not a link: no pointer, no click, no hover. */
 	pointer-events: none;
 }
-.sf-md a[href="#omp-pill-success"] { --tc: var(--sf-ok); }
-.sf-md a[href="#omp-pill-warning"] { --tc: var(--sf-warn); }
-.sf-md a[href="#omp-pill-error"] { --tc: var(--sf-bad); }
-
-/* Consequences, kind of work and ownership are solid, as in the terminal. */
-.sf-md a:is([href="#omp-pill-danger"], [href="#omp-pill-mode"], [href="#omp-pill-owner"]) {
-	color: #fff;
-	box-shadow: none !important;
+/* The icon takes its glyph's own width; the gap after it is narrower than a space, in step with the padding. */
+.sf-md a[href^="#omp-pill-"] .sf-t-icon {
+	width: auto !important;
+	min-width: 0 !important;
+	margin: 0 0.35em 0 0 !important;
+	padding: 0 !important;
+	font-size: 1em;
 }
-.sf-md a[href="#omp-pill-danger"] { background: var(--bad-fill); }
-.sf-md a[href="#omp-pill-mode"] { background: color-mix(in oklab, var(--sf-info) 70%, black); }
-.sf-md a[href="#omp-pill-owner"] { background: var(--accent-fill); }
+.sf-md a[href="#omp-pill-success"] { --tc: var(--sf-c-success); }
+.sf-md a[href="#omp-pill-warning"] { --tc: var(--sf-c-warning); }
+.sf-md a[href="#omp-pill-error"] { --tc: var(--sf-c-error); }
+
+.sf-md a:is([href="#omp-pill-danger"], [href="#omp-pill-mode"], [href="#omp-pill-owner"]) {
+	color: var(--tv-bg, var(--page));
+}
+.sf-md a[href="#omp-pill-danger"] { background: var(--ansi1); }
+.sf-md a[href="#omp-pill-mode"] { background: var(--ansi6); }
+.sf-md a[href="#omp-pill-owner"] { background: var(--ansi4); }

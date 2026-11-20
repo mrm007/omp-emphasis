@@ -219,10 +219,10 @@ function withLabelIcon(label: string): string {
 // A line's leading bold label, after an optional list marker or tree connector.
 const LEAD_LABEL = /^(\s*(?:[-*+]|\d+\.)?\s*(?:[├└]──\s*)?\*\*)([^*`\n]{1,32})(\*\*)/;
 
-/** A pill's text: its word, after its icon unless icons are off. */
-function pillText(label: string): string {
+/** A pill's text: its word, after its icon and `gap` unless icons are off. */
+function pillText(label: string, gap = " "): string {
 	const { icon, word } = splitLabel(label);
-	return icon && word && process.env.PI_EMPHASIS_PILL_ICONS !== "0" ? `${icon} ${word}` : word || label.trim();
+	return icon && word && process.env.PI_EMPHASIS_PILL_ICONS !== "0" ? `${icon}${gap}${word}` : word || label.trim();
 }
 
 function pill(label: string, palette: Palette): string {
@@ -259,8 +259,9 @@ function decorateLine(line: string, palette: Palette, open: string, close: strin
 			if (label !== undefined) {
 				if (!label.trim()) return match;
 				if (palette.native) {
+					// A link pill's icon is spaced from its word by the Tern plugin's sheet, not a space.
+					if (palette.pillLinks) return `[${pillText(label, "").replace(/[\\`*_$]/g, "\\$&")}](#omp-pill-${toneOf(label)})`;
 					const text = pillText(label);
-					if (palette.pillLinks) return `[${text.replace(/[\\`*_$]/g, "\\$&")}](#omp-pill-${toneOf(label)})`;
 					return text.includes("`") ? match : `\`${text}\``;
 				}
 				if (!palette.pills) return match;
