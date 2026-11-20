@@ -1,0 +1,31 @@
+/*
+ * omp-emphasis sends each [[pill]] in an omp reply to Tern as a link to #omp-pill-<tone>.
+ * These rules draw it as Tern draws a badge: text in the tone color on a 12% tint inside a 24% ring.
+ * Plugin sheets are global, so every selector is scoped to those links.
+ */
+.sf-md a[href^="#omp-pill-"] {
+	--tc: var(--accent);
+	color: var(--tc);
+	background: rgb(from var(--tc) r g b / 12%);
+	/* Tern underlines Markdown links with an inset shadow that only an important rule replaces. */
+	box-shadow: inset 0 0 0 1px rgb(from var(--tc) r g b / 24%) !important;
+	border-radius: 999px;
+	padding: 0 7px;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	/* A pill is not a link: no pointer, no click, no hover. */
+	pointer-events: none;
+}
+.sf-md a[href="#omp-pill-success"] { --tc: var(--sf-ok); }
+.sf-md a[href="#omp-pill-warning"] { --tc: var(--sf-warn); }
+.sf-md a[href="#omp-pill-error"] { --tc: var(--sf-bad); }
+
+/* Consequences, kind of work and ownership are solid, as in the terminal. */
+.sf-md a:is([href="#omp-pill-danger"], [href="#omp-pill-mode"], [href="#omp-pill-owner"]) {
+	color: #fff;
+	box-shadow: none !important;
+}
+.sf-md a[href="#omp-pill-danger"] { background: var(--bad-fill); }
+.sf-md a[href="#omp-pill-mode"] { background: color-mix(in oklab, var(--sf-info) 70%, black); }
+.sf-md a[href="#omp-pill-owner"] { background: var(--accent-fill); }

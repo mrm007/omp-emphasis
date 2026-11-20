@@ -1,0 +1,1 @@
+-- Everything this plugin does is in pills.css. Tern requires a host or window entry.

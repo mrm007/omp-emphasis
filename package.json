@@ -12,7 +12,7 @@
   "omp": {
     "extensions": ["./index.ts"]
   },
-  "files": ["index.ts", "README.md", "LICENSE"],
+  "files": ["index.ts", "tern", "README.md", "LICENSE"],
   "devDependencies": {
     "@oh-my-pi/pi-coding-agent": "^18.22.2",
     "@oh-my-pi/pi-tui": "^18.22.2",

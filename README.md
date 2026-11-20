@@ -27,12 +27,13 @@ Checked on macOS only. Setup takes about two minutes if your terminal already ha
 ```sh
 omp install git:github.com/mrm007/omp-emphasis
 omp config set extensionRenderers.assistantText true
+tern plugin install github.com/mrm007/omp-emphasis/tern   # Tern only: draws the pills
 ```
 
 Then start omp again. The setting is also under Tools, Extensions, Extension Reply Renderers in `/settings`.
 
-- List: `omp plugin list`
-- Remove: `omp plugin uninstall omp-emphasis`
+- List: `omp plugin list`, `tern plugin list`
+- Remove: `omp plugin uninstall omp-emphasis`, `tern plugin remove omp-emphasis`
 
 ## Set up your terminal
 
@@ -147,8 +148,8 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 ## Limits
 
 - A bold span that continues onto a second source line is colored only on its first line.
-- Tern's native view draws the Markdown itself, in a proportional font, and cannot show terminal colors. There each pill is an inline math color box (`$\colorbox{…}{…}$`) in the theme's colors, with its word in the math sans-serif, slightly larger than the prose and not bold. Its icon sits just outside the box, because Tern draws icon glyphs inside math blank. Words with a backslash, caret or tilde stay uncolored code chips. Tree rows become nested list items, because box-drawing connectors only line up in a monospace font. Labels and icons are the same as in the terminal; bold, arrows and marks take Tern's own styling.
-- Checked on macOS only, with omp 18.22.2.
+- Tern's native view draws the Markdown itself, in a proportional font, and cannot show terminal colors. There each pill is a link to `#omp-pill-<tone>` that the Tern plugin in [`tern/`](tern) draws as a rounded pill, as Tern draws its own badges: the tone's color on a light tint of it, and white on a solid color for consequences, kind of work and ownership. The extension sends links only when it finds the plugin in Tern's plugins folder, which it knows only on macOS (or from `TERN_CONFIG_DIR`); otherwise pills are uncolored code chips. Tree rows become nested list items, because box-drawing connectors only line up in a monospace font. Labels and icons are the same as in the terminal; bold, arrows and marks take Tern's own styling.
+- Checked on macOS only, with omp 19.0.1 and Tern 0.9.29.
 
 ## Development
 
@@ -170,3 +171,5 @@ tern ctl --control /tmp/check.sock resize 1100 1900   # taller, to fit the whole
 tern ctl --control /tmp/check.sock shot reply         # writes /tmp/shots/serve/reply.png
 tern ctl --control /tmp/check.sock quit
 ```
+
+A headless Tern loads no plugins: before `shot`, add the pill sheet with `tern ctl --control /tmp/check.sock css omp-emphasis "$PWD/tern/pills.css"`, and start omp with `TERN_CONFIG_DIR` pointing at a folder whose `plugins/` has the plugin linked (`TERN_CONFIG_DIR=… tern plugin link tern`), so the extension sends link pills.
