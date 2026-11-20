@@ -1,18 +1,22 @@
-"""Render the demo replies in a real omp session and write them as HTML pages to screenshot.
+"""Render the demo replies in a real omp session: in a terminal as HTML pages to screenshot, and in
+Tern's native view as finished screenshots.
 
-  python3 demo/shots.py            writes reply.html, without.html and vocabulary.html to demo/out/
+  python3 demo/shots.py            writes reply.html, without.html and vocabulary.html to demo/out/,
+                                   and tern-reply.png and tern-vocabulary.png to screenshots/
 
-Each reply in demo/*.md is placed in a session file as an assistant message, opened by omp inside a
-detached tmux session with only this extension loaded, and the drawn screen is converted to HTML.
-Screenshot the <pre id="t"> element of each page with any browser. Needs omp, tmux, and a
-JetBrains Mono Nerd Font in ~/Library/Fonts. No model is called.
+Each reply in demo/*.md is placed in a session file as an assistant message and opened by omp with
+only this extension loaded. For the terminal, omp runs inside a detached tmux session and the drawn
+screen is converted to HTML: screenshot the <pre id="t"> element of each page with any browser. For
+Tern, omp runs inside a headless Tern (`tern serve`), which shoots the window itself. Needs omp, tmux,
+tern, and a JetBrains Mono Nerd Font in ~/Library/Fonts. No model is called.
 """
-import html, json, pathlib, re, shlex, shutil, subprocess, time, uuid
+import html, json, os, pathlib, re, shlex, shutil, subprocess, time, uuid
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "demo/out"
 # The omp on this shell's PATH: tmux starts a login shell, whose PATH may find a different one.
 OMP = shlex.quote(shutil.which("omp") or "omp")
+TERN = shutil.which("tern") or "/Applications/Tern.app/Contents/MacOS/tern"
 FONT = "file://" + str(pathlib.Path.home() / "Library/Fonts/JetBrainsMonoNerdFont-")
 A16=["#1d1f21","#e06c75","#98c379","#e5c07b","#61afef","#c678dd","#56b6c2","#d7dae0","#5c6370","#e06c75","#98c379","#e5c07b","#61afef","#c678dd","#56b6c2","#ffffff"]
 def c256(n):
@@ -65,7 +69,7 @@ def convert(ansi):
 
 
 def session(prompt, reply):
-    """A Pi session file holding one prompt and one scripted assistant reply."""
+    """An omp session file holding one prompt and one scripted assistant reply."""
     rows = [{"type": "session", "version": 3, "id": str(uuid.uuid4()), "timestamp": "2026-01-01T10:00:00.000Z", "cwd": str(OUT)}]
     parent = None
     for message in (
@@ -77,18 +81,28 @@ def session(prompt, reply):
         row = {"type": "message", "id": uuid.uuid4().hex[:8], "parentId": parent, "timestamp": "2026-01-01T10:00:01.000Z", "message": message}
         rows.append(row)
         parent = row["id"]
+    OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / "session.jsonl"
     path.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
     return path
 
 
-def shot(name, prompt, reply_file, extension=True, rows=60, cols=112):
+def agent_dir():
+    """An omp agent folder of its own, with titanium and extension reply renderers on."""
     agent = OUT / "agent"
     agent.mkdir(parents=True, exist_ok=True)
     (agent / "config.yml").write_text("theme:\n  dark: titanium\nsetupVersion: 3\nextensionRenderers:\n  assistantText: true\n")
-    path = session(prompt, (ROOT / "demo" / reply_file).read_text())
+    return agent
+
+
+def omp_command(path, extension=True):
     load = f"-e {ROOT / 'index.ts'}" if extension else ""
-    command = f"cd {OUT} && PI_CODING_AGENT_DIR={agent} COLORTERM=truecolor {OMP} --resume {path} --no-extensions {load} --no-skills --no-context-files --offline; sleep 60"
+    return f"cd {OUT} && PI_CODING_AGENT_DIR={agent_dir()} COLORTERM=truecolor {OMP} --resume {path} --no-extensions {load} --no-skills --no-context-files --offline"
+
+
+def shot(name, prompt, reply_file, extension=True, rows=60, cols=112):
+    path = session(prompt, (ROOT / "demo" / reply_file).read_text())
+    command = f"{omp_command(path, extension)}; sleep 60"
     tmux = "omp-emphasis-shot"
     subprocess.run(["tmux", "kill-session", "-t", tmux], capture_output=True)
     subprocess.run(["tmux", "new-session", "-d", "-s", tmux, "-x", str(cols), "-y", str(rows), command], check=True)
@@ -110,8 +124,58 @@ body{{margin:0;background:{BG}}} pre{{display:inline-block;margin:0;padding:22px
     print(OUT / f"{name}.html")
 
 
+def tern_shot(name, prompt, reply_file, width=960, margin=24):
+    """Shoot the reply in a headless Tern's native view, titanium dark, and write screenshots/<name>.png."""
+    path = session(prompt, (ROOT / "demo" / reply_file).read_text())
+    # Tern state of its own with the plugin linked, so the extension finds it and sends link pills.
+    env = {**os.environ, "TERN_CONFIG_DIR": str(OUT / "tern")}
+    subprocess.run([TERN, "plugin", "link", str(ROOT / "tern")], env=env, check=True, capture_output=True)
+    sock = OUT / "tern.sock"
+    serve = subprocess.Popen([TERN, "serve", "--control", str(sock), "--out", str(OUT / "tern-shots")], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def ctl(*args):
+        reply = json.loads(subprocess.run([TERN, "ctl", "--control", str(sock), *args], capture_output=True, text=True, check=True).stdout)
+        if not reply.get("ok"):
+            raise RuntimeError(f"tern ctl {' '.join(args)}: {reply}")
+        return reply
+
+    try:
+        time.sleep(3)
+        ctl("resize", str(width), "1600")
+        ctl("theme", "titanium")
+        ctl("appearance", "dark")
+        # ctl reads one quoted argument; the command holds no double quotes.
+        ctl("type", f'"{omp_command(path)}"')
+        ctl("key", "enter")
+        time.sleep(10)
+        # A headless Tern loads no plugins, so the pill sheet goes in by hand.
+        ctl("css", "omp-emphasis", str(ROOT / "tern/pills.css"))
+        time.sleep(1)
+        taken = ctl("shot", name)
+    finally:
+        subprocess.run([TERN, "ctl", "--control", str(sock), "quit"], capture_output=True)
+        serve.wait(timeout=10)
+    # Crop to the prompt card and the reply below it, from the layout Tern writes beside the picture.
+    layout = json.loads(pathlib.Path(taken["layout"]).read_text())
+    scale = layout["viewport"]["deviceScaleFactor"]
+    elements = layout["elements"]
+    shown = lambda end: next(e for e in elements if e["path"].endswith(end) and e["rect"][2] > 0)
+    # The prompt is the card holding Markdown; omp's logo above it is a card too.
+    prompt_md = shown("div.sf.sf-card.nohead>div.sf-card-body>div.sf.sf-md")
+    card_nth = ">".join(prompt_md["nth"].split(">")[:-2])
+    prompt_card = next(e["rect"] for e in elements if e["nth"] == card_nth)
+    reply = shown("div.sf.sf-col.gap-none>div.sf.sf-md")["rect"]
+    left, top = reply[0] - margin, prompt_card[1] - margin
+    right, bottom = prompt_card[0] + prompt_card[2] + margin, reply[1] + reply[3] + margin
+    target = ROOT / "screenshots" / f"{name}.png"
+    subprocess.run(["sips", "-c", str(round((bottom - top) * scale)), str(round((right - left) * scale)), "--cropOffset", str(round(top * scale)), str(round(left * scale)), taken["png"], "--out", str(target)], check=True, capture_output=True)
+    print(target)
+
+
 if __name__ == "__main__":
     deploy = "The staging deploy for checkout failed again. What happened?"
     shot("reply", deploy, "deploy-reply.md")
     shot("without", deploy, "deploy-reply.md", extension=False)
     shot("vocabulary", "Show me every pill.", "every-pill.md")
+    tern_shot("tern-reply", deploy, "deploy-reply.md")
+    tern_shot("tern-vocabulary", "Show me every pill.", "every-pill.md")

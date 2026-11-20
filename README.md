@@ -8,13 +8,17 @@ The reply above is an invented example about an imagined deploy. This is the sam
 
 ![The same reply as plain Markdown, with the pills shown as bracketed words](screenshots/without.png)
 
+In Tern's native view, with the Tern plugin from [Install](#install), the same reply looks like this:
+
+![The same reply in Tern's native view, with the same pills in a proportional page](screenshots/tern-reply.png)
+
 It changes only what is drawn. Stored messages, copied text and HTML exports keep the original Markdown. It calls no model and costs nothing to run.
 
 ## Requirements
 
 | You need | Why | Without it |
 |---|---|---|
-| [omp](https://github.com/can1357/oh-my-pi) 18.14 or newer (checked on 18.22.2) | Earlier versions cannot change how replies are drawn | The extension fails to load |
+| [omp](https://github.com/can1357/oh-my-pi) 18.14 or newer (checked on 19.0.1) | Earlier versions cannot change how replies are drawn | The extension fails to load |
 | The `extensionRenderers.assistantText` setting turned on | omp only lets extensions change how replies are drawn when this setting is on | Pills stay as `[[Done]]` |
 | A terminal that can draw [Nerd Font](https://www.nerdfonts.com/) symbols | The icons and the rounded pill ends are Nerd Font symbols | You see empty boxes or question marks. See [Set up your terminal](#set-up-your-terminal) |
 | A terminal with 24-bit color | Pills are the theme's tool panel tinted with each tone's color | Pills are drawn in reverse video |
@@ -95,6 +99,10 @@ Write `[[Word]]` beside the thing it describes. The word decides the color and t
 
 ![Every pill word, grouped by color](screenshots/vocabulary.png)
 
+The same words in Tern:
+
+![Every pill word in Tern's native view](screenshots/tern-vocabulary.png)
+
 | Color | Meaning | Words |
 |---|---|---|
 | Red | Something is wrong | Failed, Blocked, Broken, Unsafe, Rejected, Down |
@@ -156,20 +164,9 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 ```sh
 bun install
 bun run check                # types and tests
-python3 demo/shots.py        # redraw the demo replies in a real omp session, as HTML to screenshot
+python3 demo/shots.py        # redraw the demo replies: terminal HTML to demo/out/, Tern PNGs to screenshots/
 ```
 
 `demo/` holds the two example replies. `sgr-sampler.sh` prints every terminal text style so you can see which ones your terminal draws.
 
-To see a reply in Tern's native view without touching your windows, start a headless Tern and replay a session in it:
-
-```sh
-tern serve --control /tmp/check.sock --out /tmp/shots &
-tern ctl --control /tmp/check.sock type '"omp --resume /path/to/session.jsonl"'
-tern ctl --control /tmp/check.sock key enter
-tern ctl --control /tmp/check.sock resize 1100 1900   # taller, to fit the whole reply
-tern ctl --control /tmp/check.sock shot reply         # writes /tmp/shots/serve/reply.png
-tern ctl --control /tmp/check.sock quit
-```
-
-A headless Tern loads no plugins: before `shot`, add the pill sheet with `tern ctl --control /tmp/check.sock css omp-emphasis "$PWD/tern/pills.css"`, and start omp with `TERN_CONFIG_DIR` pointing at a folder whose `plugins/` has the plugin linked (`TERN_CONFIG_DIR=… tern plugin link tern`), so the extension sends link pills.
+`shots.py` draws the Tern screenshots in a headless Tern (`tern serve`), so your Tern windows are left alone. A headless Tern loads no plugins, so the script adds the pill sheet itself (`tern ctl … css`) and links the plugin into a Tern folder of its own (`TERN_CONFIG_DIR`), where the extension finds it and sends link pills.
