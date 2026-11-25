@@ -17,8 +17,11 @@
 		color-mix(in srgb, var(--tc) 16%, var(--tv-bg, var(--page))),
 		color-mix(in srgb, var(--tc) 25%, var(--tv-bg, var(--page)))
 	) !important;
-	/* Tern underlines Markdown links with an inset shadow that only an important rule replaces. */
-	box-shadow: none !important;
+	/*
+	 * A darker 1px edge inside the bottom of the pill. Important, so it replaces the inset underline
+	 * Tern gives Markdown links, and the phone's `box-shadow: none`.
+	 */
+	box-shadow: inset 0 -1px 0 rgb(0 0 0 / 10%) !important;
 	border-radius: 999px;
 	/*
 	 * Even padding, chosen by eye: the capitals sit about a pixel above the middle, which centers the
