@@ -60,3 +60,11 @@
 .sf-md a[href="#omp-pill-danger"] { background: var(--ansi1) !important; }
 .sf-md a[href="#omp-pill-mode"] { background: var(--ansi6) !important; }
 .sf-md a[href="#omp-pill-owner"] { background: var(--ansi4) !important; }
+
+/*
+ * Tern's phone build has only its bundled code font, Ioskeley Mono Term, in Regular and Medium: no bold,
+ * and Tern doesn't fake one. The system's monospaced font has every weight.
+ */
+html.tn-phone .sf-md a[href^="#omp-pill-"] {
+	font-family: ui-monospace, var(--tv-font, var(--mono));
+}
