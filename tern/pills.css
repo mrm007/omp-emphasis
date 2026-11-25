@@ -49,6 +49,11 @@
 	margin: 0 0.35em 0 0 !important;
 	padding: 0 !important;
 	font-size: 1em;
+	/*
+	 * Icons sit on the baseline and hang below it, so their centre is 1px under the capitals' centre
+	 * in both FiraCode and the phone's font. A transform moves the drawing without moving the line.
+	 */
+	transform: translateY(-1px);
 }
 .sf-md a[href="#omp-pill-success"] { --tc: var(--sf-c-success); }
 .sf-md a[href="#omp-pill-warning"] { --tc: var(--sf-c-warning); }
