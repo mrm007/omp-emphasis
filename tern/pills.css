@@ -17,11 +17,10 @@
 	box-shadow: none !important;
 	border-radius: 999px;
 	/*
-	 * Where the capitals sit depends on the code font's descent. 1px more above than below keeps them
-	 * within half a pixel of the middle in both SF Mono, Tern's default, and FiraCode, whose deeper
-	 * descent lifts them; Tern's own inline code sits higher than that in both.
+	 * Even padding, chosen by eye: the capitals sit about a pixel above the middle, which centers the
+	 * lowercase letters most words are made of.
 	 */
-	padding: 3px 10px 1px;
+	padding: 2px 10px;
 	/* Tern's own inline code in replies: the terminal's font at 12.5px. */
 	font-family: var(--tv-font, var(--mono));
 	font-size: 12.5px;
