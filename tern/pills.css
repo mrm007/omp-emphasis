@@ -16,7 +16,11 @@
 	/* Tern underlines Markdown links with an inset shadow that only an important rule replaces. */
 	box-shadow: none !important;
 	border-radius: 999px;
-	padding: 2px 10px;
+	/*
+	 * One pixel more above than below: the line box keeps room for descenders under the baseline,
+	 * so even padding leaves the capitals about a pixel above the middle.
+	 */
+	padding: 3px 10px 1px;
 	font-family: var(--tv-font, var(--mono));
 	font-size: 0.93em;
 	font-weight: 700;
