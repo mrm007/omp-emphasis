@@ -33,7 +33,7 @@ export interface Palette {
 	 * pills become inline code spans and tree rows become nested list items.
 	 */
 	native?: boolean;
-	/** In a native view, pills become links to `#omp-pill-<tone>`, which the Tern plugin's sheet draws as tinted pills. */
+	/** In a native view, pills become links to `#omp-emphasis__pill--<tone>`, which the Tern plugin's sheet draws as tinted pills. */
 	pillLinks?: boolean;
 }
 
@@ -263,7 +263,7 @@ function decorateLine(line: string, palette: Palette, open: string, close: strin
 				if (!label.trim()) return match;
 				if (palette.native) {
 					// A link pill's icon is spaced from its word by the Tern plugin's sheet, not a space.
-					if (palette.pillLinks) return `[${pillText(label, "").replace(/[\\`*_$]/g, "\\$&")}](#omp-pill-${toneOf(label)})`;
+					if (palette.pillLinks) return `[${pillText(label, "").replace(/[\\`*_$]/g, "\\$&")}](#omp-emphasis__pill--${toneOf(label)})`;
 					const text = pillText(label);
 					return text.includes("`") ? match : `\`${text}\``;
 				}
