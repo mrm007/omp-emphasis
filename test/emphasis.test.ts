@@ -4,8 +4,8 @@ import { CONTEXT_WORDS, VOCABULARY, createPalette, decorate, replyGuidance, tone
 // A theme whose colors are readable tags, so tests can assert on what was colored.
 const theme = {
 	fg: (color: string, text: string) => `<${color}>${text}</>`,
-	getFgAnsi: (color: string) => `\x1b[38;fg-${color}m`,
-	getBgAnsi: (color: string) => `\x1b[48;bg-${color}m`,
+	fgSgr: (color: string) => `\x1b[38;fg-${color}m`,
+	bg: (color: string, text: string) => `\x1b[48;bg-${color}m${text}\x1b[49m`,
 } as unknown as ThemeLike;
 const palette = createPalette(theme);
 const plain = (text: string) => decorate(text, palette).replace(/\x1b\[[0-9;a-zA-Z-]*m/g, "").replace(/[\ue0b4\ue0b6]/g, "|").replace(/\u00a0/g, " ");
@@ -85,8 +85,8 @@ test("icons can be turned off", () => {
 test("tone pills tint the tool panel with the tone's color, or fall back to reverse video", () => {
 	const truecolor = {
 		fg: (_color: string, text: string) => text,
-		getFgAnsi: (color: string) => (color === "warning" ? "\x1b[38;2;255;179;71m" : "\x1b[38;2;0;0;0m"),
-		getBgAnsi: () => "\x1b[48;2;15;18;22m",
+		fgSgr: (color: string) => (color === "warning" ? "\x1b[38;2;255;179;71m" : "\x1b[38;2;0;0;0m"),
+		bg: (_color: string, text: string) => `\x1b[48;2;15;18;22m${text}\x1b[49m`,
 	} as unknown as ThemeLike;
 	const warning = createPalette(truecolor).pills!.warning;
 	expect(warning.label).toBe("\x1b[48;2;75;58;34m\x1b[38;2;255;179;71m");

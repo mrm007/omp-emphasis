@@ -11,7 +11,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { isNativeRendering } from "@oh-my-pi/pi-tui/native/state";
+import { nativeRendering } from "@oh-my-pi/pi-tui";
 
 type Colorize = (text: string) => string;
 export type PillTone = "success" | "error" | "warning" | "danger" | "mode" | "owner" | "neutral";
@@ -40,9 +40,12 @@ export interface Palette {
 /** Minimal slice of omp's Theme used to build a palette. */
 export interface ThemeLike {
 	fg(color: never, text: string): string;
-	getFgAnsi(color: never): string;
-	getBgAnsi(color: never): string;
+	fgSgr(color: never): string;
+	bg(color: never, text: string): string;
 }
+
+/** A background key's escape: what `bg` puts before the text it wraps. */
+const bgSgr = (theme: ThemeLike, name: string) => theme.bg(name as never, "\0").split("\0")[0];
 
 /** Each tone's words. `core` are the words agents are told to write; `also` are accepted and colored the same. */
 export const VOCABULARY: Record<Exclude<PillTone, "neutral">, { core: string[]; also: string[] }> = {
@@ -143,15 +146,15 @@ export function createPalette(theme: ThemeLike, boldColor = "mdLink"): Palette {
 		// Without a 24-bit panel to tint (a 256-color terminal, or a theme without panel
 		// colors) pills are drawn in reverse video: the tone's color becomes the background.
 		if (!bgAnsi || /^\x1b\[49m$/.test(bgAnsi)) {
-			const fgAnsi = theme.getFgAnsi((labelFg === "text" ? "accent" : labelFg) as never);
+			const fgAnsi = theme.fgSgr((labelFg === "text" ? "accent" : labelFg) as never);
 			return { label: `${fgAnsi}\x1b[7m`, cap: fgAnsi };
 		}
-		return { label: bgAnsi + theme.getFgAnsi(labelFg as never), cap: bgToFg(bgAnsi) };
+		return { label: bgAnsi + theme.fgSgr(labelFg as never), cap: bgToFg(bgAnsi) };
 	};
 	// omp themes have no warning panel, and many leave the success and error panels untinted,
 	// so each tone's pill is the tool panel tinted with that tone's own color.
-	const panel = theme.getBgAnsi("toolPendingBg" as never);
-	const tinted = (name: string) => tone(name, tint(theme.getFgAnsi(name as never), panel));
+	const panel = bgSgr(theme, "toolPendingBg");
+	const tinted = (name: string) => tone(name, tint(theme.fgSgr(name as never), panel));
 	return {
 		bold: fg(boldColor),
 		passed: fg("success"),
@@ -160,7 +163,7 @@ export function createPalette(theme: ThemeLike, boldColor = "mdLink"): Palette {
 			success: tinted("success"),
 			error: tinted("error"),
 			warning: tinted("warning"),
-			neutral: tone("text", theme.getBgAnsi("selectedBg" as never)),
+			neutral: tone("text", bgSgr(theme, "selectedBg")),
 			// Solid chips in the terminal's own magenta, cyan and blue: louder than the panel-colored tones.
 			danger: solid(31),
 			mode: solid(36),
@@ -351,6 +354,6 @@ export default function emphasis(pi: ExtensionAPI) {
 		const theme = currentTheme();
 		if (built?.theme !== theme) built = { theme, palette: createPalette(theme, process.env.PI_EMPHASIS_COLOR || "mdLink") };
 		// Tern's native view draws the Markdown itself: pills become links its plugin styles (else code chips), trees become lists.
-		return decorate(text, isNativeRendering() ? { bold: (bold) => bold, native: true, pillLinks } : built.palette);
+		return decorate(text, nativeRendering() ? { bold: (bold) => bold, native: true, pillLinks } : built.palette);
 	});
 }

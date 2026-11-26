@@ -68,8 +68,12 @@ def convert(ansi):
     return "".join(out)
 
 
-def session(prompt, reply):
-    """An omp session file holding one prompt and one scripted assistant reply."""
+def session(name, prompt, reply):
+    """An omp session file of the shot's own, holding one prompt and one scripted assistant reply.
+
+    One file per shot: an omp killed after its shot appends its exit record a moment later, and in a
+    shared file that record would land in the next shot's session and cut its transcript.
+    """
     rows = [{"type": "session", "version": 3, "id": str(uuid.uuid4()), "timestamp": "2026-01-01T10:00:00.000Z", "cwd": str(OUT)}]
     parent = None
     for message in (
@@ -82,7 +86,7 @@ def session(prompt, reply):
         rows.append(row)
         parent = row["id"]
     OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / "session.jsonl"
+    path = OUT / f"{name}.jsonl"
     path.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
     return path
 
@@ -101,7 +105,7 @@ def omp_command(path, extension=True):
 
 
 def shot(name, prompt, reply_file, extension=True, rows=60, cols=112):
-    path = session(prompt, (ROOT / "demo" / reply_file).read_text())
+    path = session(name, prompt, (ROOT / "demo" / reply_file).read_text())
     command = f"{omp_command(path, extension)}; sleep 60"
     tmux = "omp-emphasis-shot"
     subprocess.run(["tmux", "kill-session", "-t", tmux], capture_output=True)
@@ -126,7 +130,7 @@ body{{margin:0;background:{BG}}} pre{{display:inline-block;margin:0;padding:22px
 
 def tern_shot(name, prompt, reply_file, width=960, margin=24):
     """Shoot the reply in a headless Tern's native view, titanium dark, and write screenshots/<name>.png."""
-    path = session(prompt, (ROOT / "demo" / reply_file).read_text())
+    path = session(name, prompt, (ROOT / "demo" / reply_file).read_text())
     # Tern state of its own with the plugin linked, so the extension finds it and sends link pills.
     env = {**os.environ, "TERN_CONFIG_DIR": str(OUT / "tern")}
     subprocess.run([TERN, "plugin", "link", str(ROOT / "tern")], env=env, check=True, capture_output=True)

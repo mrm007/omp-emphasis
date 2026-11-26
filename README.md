@@ -18,7 +18,7 @@ It changes only what is drawn. Stored messages, copied text and HTML exports kee
 
 | You need | Why | Without it |
 |---|---|---|
-| [omp](https://github.com/can1357/oh-my-pi) 18.14 or newer (checked on 19.0.1) | Earlier versions cannot change how replies are drawn | The extension fails to load |
+| [omp](https://github.com/can1357/oh-my-pi) 19.2 or newer (checked on 19.2.1) | omp 19.2 replaced the UI package and theme the extension reads | The extension fails to load |
 | The `extensionRenderers.assistantText` setting turned on | omp only lets extensions change how replies are drawn when this setting is on | Pills stay as `[[Done]]` |
 | A terminal that can draw [Nerd Font](https://www.nerdfonts.com/) symbols | The icons and the rounded pill ends are Nerd Font symbols | You see empty boxes or question marks. See [Set up your terminal](#set-up-your-terminal) |
 | A terminal with 24-bit color | Pills are the theme's tool panel tinted with each tone's color | Pills are drawn in reverse video |
@@ -144,7 +144,8 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 | You see | Cause | Fix |
 |---|---|---|
 | `[[Done]]` as plain text | The extension is not loaded, or `extensionRenderers.assistantText` is off | Run `omp config get extensionRenderers.assistantText` and check that `omp plugin list` shows omp-emphasis, then start omp again |
-| `Failed to load extension: pi.registerAssistantTextRenderer is not a function` | The `omp` on your PATH is older than 18.14 | Run `which -a omp` and update or remove the old one |
+| `Failed to load extension: Export named 'nativeRendering' not found` | The `omp` on your PATH is older than 19.2 | Run `which -a omp` and update or remove the old one |
+| `Failed to load extension: Cannot find package '@oh-my-pi/pi-tui'` | omp-emphasis 0.3.4 or older, on omp 19.2 or newer | `omp plugin upgrade omp-emphasis` |
 | Boxes or question marks in or around pills | The terminal has no Nerd Font symbols | [Set up your terminal](#set-up-your-terminal), or turn icons and rounded ends off |
 | Icons that overlap the next letter | The font draws its icons two cells wide | Use the "Mono" variant of the Nerd Font, such as JetBrainsMono Nerd Font Mono |
 | Pills that are all one color, in reverse video | The theme's colors are not 24-bit, so there is no panel to tint | Set `COLORTERM=truecolor` if your terminal draws 24-bit color |
@@ -157,7 +158,7 @@ To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](
 
 - A bold span that continues onto a second source line is colored only on its first line.
 - Tern's native view draws the Markdown itself, in a proportional font, and cannot show terminal colors. There each pill is a link to `#omp-pill-<tone>` that the Tern plugin in [`tern/`](tern) draws as the terminal draws a pill: bold mono text in the tone's color on a tint of it, and reverse video in the theme's red, cyan and blue for consequences, kind of work and ownership. Every pill's text keeps at least 3:1 contrast with its fill in Tern's dark, light, titanium and porcelain themes. The extension sends links only when it finds the plugin in Tern's plugins folder, which it knows only on macOS (or from `TERN_CONFIG_DIR`); otherwise pills are uncolored code chips. Tree rows become nested list items, because box-drawing connectors only line up in a monospace font. Labels and icons are the same as in the terminal; bold, arrows and marks take Tern's own styling.
-- Checked on macOS only, with omp 19.0.1 and Tern 0.9.29.
+- Checked on macOS only, with omp 19.2.1 and Tern 0.9.33.
 
 ## Development
 
