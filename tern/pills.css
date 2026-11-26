@@ -3,11 +3,13 @@
  * #omp-emphasis__pill--<tone> (BEM: block omp-emphasis, element pill, modifier tone). Tern's Markdown
  * has no classes, and a link's target is the one string it keeps on the element; it is a fragment
  * because Tern drops links with a custom scheme. These rules match it by its href.
+ * Each rule also matches the earlier name, #omp-pill-<tone>, which extension 0.4.0 and older writes:
+ * omp tabs opened before an upgrade keep running that extension until they close.
  * They draw it as the terminal draws a pill: bold mono text in the tone's color on the background
  * tinted a quarter of the way toward it, and reverse video in the terminal's red, cyan and blue for
  * consequences, kind of work and ownership. Plugin sheets are global, so every selector is scoped to those links.
  */
-.sf-md a[href^="#omp-emphasis__pill--"] {
+.sf-md a:is([href^="#omp-emphasis__pill--"], [href^="#omp-pill-"]) {
 	/* Any word without a tone takes the link color, as context pills take a blue in the terminal. */
 	--tc: var(--sf-c-link);
 	color: var(--tc);
@@ -48,35 +50,38 @@
 	pointer-events: none;
 }
 /* The icon takes its glyph's own width; the gap after it is narrower than a space, in step with the padding. */
-.sf-md a[href^="#omp-emphasis__pill--"] .sf-t-icon {
+.sf-md a:is([href^="#omp-emphasis__pill--"], [href^="#omp-pill-"]) .sf-t-icon {
 	width: auto !important;
 	min-width: 0 !important;
 	margin: 0 0.35em 0 0 !important;
 	padding: 0 !important;
 	font-size: 1em;
 }
-.sf-md a[href="#omp-emphasis__pill--success"] { --tc: var(--sf-c-success); }
-.sf-md a[href="#omp-emphasis__pill--warning"] { --tc: var(--sf-c-warning); }
-.sf-md a[href="#omp-emphasis__pill--error"] { --tc: var(--sf-c-error); }
+.sf-md a:is([href="#omp-emphasis__pill--success"], [href="#omp-pill-success"]) { --tc: var(--sf-c-success); }
+.sf-md a:is([href="#omp-emphasis__pill--warning"], [href="#omp-pill-warning"]) { --tc: var(--sf-c-warning); }
+.sf-md a:is([href="#omp-emphasis__pill--error"], [href="#omp-pill-error"]) { --tc: var(--sf-c-error); }
 
-.sf-md a:is([href="#omp-emphasis__pill--danger"], [href="#omp-emphasis__pill--mode"], [href="#omp-emphasis__pill--owner"]) {
+.sf-md a:is(
+	[href="#omp-emphasis__pill--danger"], [href="#omp-emphasis__pill--mode"], [href="#omp-emphasis__pill--owner"],
+	[href="#omp-pill-danger"], [href="#omp-pill-mode"], [href="#omp-pill-owner"]
+) {
 	color: var(--tv-bg, var(--page));
 }
-.sf-md a[href="#omp-emphasis__pill--danger"] { background: var(--ansi1) !important; }
-.sf-md a[href="#omp-emphasis__pill--mode"] { background: var(--ansi6) !important; }
-.sf-md a[href="#omp-emphasis__pill--owner"] { background: var(--ansi4) !important; }
+.sf-md a:is([href="#omp-emphasis__pill--danger"], [href="#omp-pill-danger"]) { background: var(--ansi1) !important; }
+.sf-md a:is([href="#omp-emphasis__pill--mode"], [href="#omp-pill-mode"]) { background: var(--ansi6) !important; }
+.sf-md a:is([href="#omp-emphasis__pill--owner"], [href="#omp-pill-owner"]) { background: var(--ansi4) !important; }
 
 /*
  * Tern's phone build has only its bundled code font, Ioskeley Mono Term, in Regular and Medium: no bold,
  * and Tern doesn't fake one. The system's monospaced font has every weight.
  */
-html.tn-phone .sf-md a[href^="#omp-emphasis__pill--"] {
+html.tn-phone .sf-md a:is([href^="#omp-emphasis__pill--"], [href^="#omp-pill-"]) {
 	font-family: ui-monospace, var(--tv-font, var(--mono));
 }
 /*
  * Icons sit on the baseline and hang below it. On the phone that reads as low, so they move up 1px;
  * on the desktop the same move reads as high. A transform moves the drawing without moving the line.
  */
-html.tn-phone .sf-md a[href^="#omp-emphasis__pill--"] .sf-t-icon {
+html.tn-phone .sf-md a:is([href^="#omp-emphasis__pill--"], [href^="#omp-pill-"]) .sf-t-icon {
 	transform: translateY(-1px);
 }
