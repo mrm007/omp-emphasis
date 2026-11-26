@@ -1,7 +1,7 @@
 schema = 1
 id = "omp-emphasis"
 name = "omp Emphasis"
-version = "0.3.4"
+version = "0.4.0"
 description = "Draws omp-emphasis pills in omp replies as tinted rounded pills."
 icon = "tag"
 window = "window.luau"
