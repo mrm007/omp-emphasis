@@ -1,6 +1,6 @@
 {
   "name": "omp-emphasis",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Colored status pills with icons, labeled headings and colored bold for assistant replies in omp's terminal, with the rules that teach the agent to write them. A port of pi-emphasis.",
   "license": "MIT",
   "type": "module",
