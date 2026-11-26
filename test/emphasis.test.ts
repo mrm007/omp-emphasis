@@ -42,6 +42,12 @@ describe("pills", () => {
 describe("labels", () => {
 	test("a heading takes an icon from its word", () => expect(plain("## Finding")).toBe("## \uf002 Finding"));
 	test("an unknown heading is untouched", () => expect(plain("## What happened")).toBe("## What happened"));
+	test("a heading's pills are drawn, and its icon comes from the words before them", () =>
+		expect(plain("## Finding [[Investigate]] [[Brainstorm]]")).toBe("## \uf002 Finding |\uf002 Investigate| |\uf0eb Brainstorm|"));
+	test("in Tern, a heading's pills become links and its inline code stays as written", () =>
+		expect(decorate("## Answer [[Investigate]] `[[Done]]`", { bold: (bold) => bold, native: true, pillLinks: true })).toBe(
+			"## Answer [\uf002Investigate](#omp-emphasis__pill--mode) `[[Done]]`",
+		));
 	test("a leading bold label takes an icon, after list markers and tree connectors", () => {
 		expect(plain("**Cause:** x")).toBe("**<mdLink>\uf0e7 Cause:</>** x");
 		expect(plain("- **Fix:** x")).toBe("- **<mdLink>\uf0ad Fix:</>** x");

@@ -117,6 +117,7 @@ The same words in Tern:
 - **Synonyms.** Completed, Complete, OK and Finished display as Done. Fail, Failing and Error display as Failed. Pass displays as Passed, Waiting as Pending, and Needs review as Review.
 - **Your own icon.** A label that starts with a Nerd Font glyph keeps that glyph.
 - **Length.** A label can be up to 32 characters. Longer ones are left as typed.
+- **In headings.** The reply rules say not to put pills in headings, but a pill there is still drawn, and the heading keeps its color and weight after it.
 
 ## Labels and shapes
 

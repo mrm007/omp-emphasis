@@ -176,12 +176,14 @@ export function createPalette(theme: ThemeLike, boldColor = "mdLink"): Palette {
 }
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-// Escaped bold markers, bold markers, or a [[pill]] of 1-32 characters.
-const INLINE = /(\\*)(\*\*|__)|\[\[([^\[\]\n]{1,32})\]\]/g;
+// A [[pill]] of 1-32 characters.
+const PILL = /\[\[([^\[\]\n]{1,32})\]\]/g;
+// Escaped bold markers, bold markers, or a pill.
+const INLINE = new RegExp(String.raw`(\\*)(\*\*|__)|` + PILL.source, "g");
 // A tree row's indent (spaces and vertical connectors) and its branch connector.
 const TREE_ROW = /^([ \t│]*)[├└]─+ ?/;
 
-/** Apply colors to assistant Markdown, leaving code blocks, inline code and headings alone. */
+/** Apply colors to assistant Markdown, leaving code blocks and inline code alone. A heading gets its icon and pills; omp colors the rest. */
 export function decorate(markdown: string, palette: Palette): string {
 	const [open, close] = palette.bold("\u0000").split("\u0000") as [string, string];
 	const out: string[] = [];
@@ -195,7 +197,7 @@ export function decorate(markdown: string, palette: Palette): string {
 			fence = fenceMatch[1];
 			out.push(line);
 		} else if (/^ {0,3}#{1,6}\s/.test(line)) {
-			out.push(line.replace(/^( {0,3}#{1,6}\s+)(.+)$/, (_, hashes: string, title: string) => hashes + withLabelIcon(title))); // omp already colors headings.
+			out.push(line.replace(/^( {0,3}#{1,6}\s+)(.+)$/, (_, hashes: string, title: string) => hashes + headingTitle(title, palette)));
 		} else {
 			// Box-drawing connectors only line up in a monospace font, so a native view gets nested list items.
 			const row = palette.native ? line.replace(TREE_ROW, (_, indent: string) => `${indent.replace(/│/g, " ")}- `) : line;
@@ -219,6 +221,16 @@ function withLabelIcon(label: string): string {
 	return icon ? `${icon} ${label}` : label;
 }
 
+/** A heading's title: the icon its words take with the pills left out, and its pills drawn. Inline code stays as written. */
+function headingTitle(title: string, palette: Palette): string {
+	const words = title.replace(PILL, "").trim();
+	const labeled = withLabelIcon(words);
+	const icon = labeled.slice(0, labeled.length - words.length);
+	// Odd parts are inline code spans.
+	const parts = title.split(/(`+[^`]*?`+)/g);
+	return icon + parts.map((part, i) => (i % 2 ? part : part.replace(PILL, (match, label: string) => drawPill(label, match, palette)))).join("");
+}
+
 // A line's leading bold label, after an optional list marker or tree connector.
 const LEAD_LABEL = /^(\s*(?:[-*+]|\d+\.)?\s*(?:[├└]──\s*)?\*\*)([^*`\n]{1,32})(\*\*)/;
 
@@ -236,7 +248,21 @@ function pill(label: string, palette: Palette): string {
 	const pad = palette.roundCaps ? "" : "\u00a0";
 	const capL = left ? `${style.cap}${left}\x1b[39m` : "";
 	const capR = right ? `${style.cap}${right}\x1b[39m` : "";
-	return `${capL}${style.label}\x1b[1m${pad}${text}${pad}\x1b[22;27m\x1b[39m\x1b[49m${capR}`;
+	// Separate closes: omp re-opens a heading's bold and color after each exact close, so the rest of a
+	// heading keeps its look after a pill.
+	return `${capL}${style.label}\x1b[1m${pad}${text}${pad}\x1b[22m\x1b[27m\x1b[39m\x1b[49m${capR}`;
+}
+
+/** A [[pill]] as the palette draws it: a Tern link or code chip in a native view, colored text in the terminal, else as written. */
+function drawPill(label: string, match: string, palette: Palette): string {
+	if (!label.trim()) return match;
+	if (palette.native) {
+		// A link pill's icon is spaced from its word by the Tern plugin's sheet, not a space.
+		if (palette.pillLinks) return `[${pillText(label, "").replace(/[\\`*_$]/g, "\\$&")}](#omp-emphasis__pill--${toneOf(label)})`;
+		const text = pillText(label);
+		return text.includes("`") ? match : `\`${text}\``;
+	}
+	return palette.pills ? pill(label, palette) : match;
 }
 
 function decorateLine(line: string, palette: Palette, open: string, close: string): string {
@@ -260,15 +286,9 @@ function decorateLine(line: string, palette: Palette, open: string, close: strin
 		if (palette.tree) prose = prose.replace(/[├└]──/g, (m) => palette.tree!(m) + (inBold ? open : ""));
 		result += prose.replace(INLINE, (match, slashes: string | undefined, marker: string | undefined, label: string | undefined) => {
 			if (label !== undefined) {
-				if (!label.trim()) return match;
-				if (palette.native) {
-					// A link pill's icon is spaced from its word by the Tern plugin's sheet, not a space.
-					if (palette.pillLinks) return `[${pillText(label, "").replace(/[\\`*_$]/g, "\\$&")}](#omp-emphasis__pill--${toneOf(label)})`;
-					const text = pillText(label);
-					return text.includes("`") ? match : `\`${text}\``;
-				}
-				if (!palette.pills) return match;
-				return pill(label, palette) + reopen();
+				const drawn = drawPill(label, match, palette);
+				// A terminal pill ends with resets; bold that was open resumes after it.
+				return palette.native || drawn === match ? drawn : drawn + reopen();
 			}
 			if ((slashes ?? "").length % 2 === 1) return match; // escaped marker
 			if (!inBold) {
