@@ -137,6 +137,8 @@ Environment variables, with the same names as in pi-emphasis. Set them in the sh
 - `PI_EMPHASIS_PILL_ICONS=0`: no icons in pills or on labels.
 - `PI_EMPHASIS_GUIDANCE=0`: do not add the reply-style rules to the prompt.
 
+In Tern, pills have 8px of padding on each side. To change it, set `--omp-emphasis__pill-padding-x` on `:root` in a [Tern CSS theme](https://docs.stencil.so/tern/guides/themes/), such as `:root { --omp-emphasis__pill-padding-x: 6px; }`. A theme only styles the machine it's on, so set it on each device.
+
 To add a word, an icon or a synonym, edit the tables at the top of [`index.ts`](index.ts). The rules are the `replyGuidance` function in the same file.
 
 ## Troubleshooting
